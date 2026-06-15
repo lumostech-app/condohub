@@ -30,7 +30,34 @@
 5. Para enviar mensajes proactivos (recordatorios), crear plantillas en Meta Business Manager
    y marcar `aprobada_meta = true` en la tabla `whatsapp_plantillas`
 
-## 3. Anthropic
+## 3. PayPal
+
+1. Crear cuenta en [developer.paypal.com](https://developer.paypal.com)
+2. Ir a **My Apps & Credentials** → crear app REST:
+   - Nombre: `CondoHub`
+   - Tipo: `Merchant`
+3. Copiar las credenciales:
+   - Client ID → `NEXT_PUBLIC_PAYPAL_CLIENT_ID` y `PAYPAL_CLIENT_ID`
+   - Client Secret → `PAYPAL_CLIENT_SECRET`
+4. Cambiar `PAYPAL_API_URL`:
+   - Sandbox (pruebas): `https://api-m.sandbox.paypal.com`
+   - Producción (real): `https://api-m.paypal.com`
+5. Configurar webhook en PayPal Dashboard:
+   - URL: `https://condohub.com/api/paypal/webhook`
+   - Eventos a escuchar: `CHECKOUT.ORDER.COMPLETED`, `PAYMENT.CAPTURE.COMPLETED`
+   - Copiar el Webhook ID → `PAYPAL_WEBHOOK_ID`
+6. Ejecutar `supabase/migrations/003_paypal.sql` en Supabase SQL Editor
+
+### Precios en USD (cobro a admins por la suscripción):
+| Plan     | RD$/mes | USD/mes |
+|----------|---------|---------|
+| Mini     | 990     | $17     |
+| Básico   | 1,490   | $25     |
+| Starter  | 2,500   | $43     |
+| Pro      | 4,500   | $77     |
+| Business | 7,500   | $129    |
+
+## 4. Anthropic
 
 1. Crear API key en console.anthropic.com
 2. Copiar → `ANTHROPIC_API_KEY`
@@ -51,6 +78,11 @@ TWILIO_WHATSAPP_NUMBER=
 NEXT_PUBLIC_APP_URL=https://condohub.com
 CRON_SECRET=<generar con: openssl rand -hex 32>
 SUPER_ADMIN_EMAIL=tu@email.com
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_SECRET=
+PAYPAL_WEBHOOK_ID=
+PAYPAL_API_URL=https://api-m.paypal.com
 ```
 
 3. Hacer deploy → Vercel detecta `vercel.json` y configura los 3 crons automáticamente

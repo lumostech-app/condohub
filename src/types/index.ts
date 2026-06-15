@@ -18,6 +18,8 @@ export interface Admin {
   plan: Plan
   plan_status: PlanStatus
   trial_ends_at: string | null
+  plan_paid_until: string | null
+  paypal_payer_id: string | null
   created_at: string
 }
 
@@ -176,6 +178,15 @@ export interface WhatsappPlantilla {
   tipo: PlantillaTipo | null
   contenido: string
   aprobada_meta: boolean
+}
+
+// Precios en USD para cobro por PayPal (aprox. RD$/58)
+export const PLAN_PRECIOS_USD: Record<Plan, string> = {
+  mini:     '17.00',
+  basico:   '25.00',
+  starter:  '43.00',
+  pro:      '77.00',
+  business: '129.00',
 }
 
 export const PLAN_LIMITES: Record<Plan, { condominios: number; unidades: number; precio: number }> = {

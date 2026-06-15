@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { PLAN_LIMITES } from '@/types'
+import Link from 'next/link'
+import { PLAN_LIMITES, PLAN_PRECIOS_USD } from '@/types'
 
 interface Admin {
   id: string
@@ -11,6 +12,7 @@ interface Admin {
   plan: string
   plan_status: string
   trial_ends_at: string | null
+  plan_paid_until: string | null
 }
 
 export default function ConfiguracionPage() {
@@ -173,7 +175,16 @@ export default function ConfiguracionPage() {
           {admin.trial_ends_at && admin.plan_status === 'trial' && (
             <> · Trial hasta {new Date(admin.trial_ends_at).toLocaleDateString('es-DO')}</>
           )}
+          {admin.plan_paid_until && admin.plan_status === 'active' && (
+            <> · Activo hasta {new Date(admin.plan_paid_until).toLocaleDateString('es-DO')}</>
+          )}
         </p>
+        <Link
+          href="/suscripcion"
+          className="mt-3 block w-full text-center bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+        >
+          {admin.plan_status === 'active' ? 'Renovar suscripción' : 'Pagar suscripción'} · ${PLAN_PRECIOS_USD[admin.plan as keyof typeof PLAN_PRECIOS_USD] ?? '?'} USD/mes
+        </Link>
       </div>
 
       <form action="/api/auth/logout" method="POST">

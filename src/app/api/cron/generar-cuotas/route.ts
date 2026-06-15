@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   // Obtener todos los admins con plan activo o en trial
   const { data: admins } = await supabase
     .from('admins')
-    .select('id, plan, plan_status')
+    .select('id, plan, plan_status, plan_paid_until')
     .in('plan_status', ['active', 'trial'])
 
   if (!admins?.length) {
@@ -36,6 +36,17 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (adminData?.trial_ends_at && new Date(adminData.trial_ends_at) < hoy) {
+        await supabase
+          .from('admins')
+          .update({ plan_status: 'suspended' })
+          .eq('id', admin.id)
+        continue
+      }
+    }
+
+    // Verificar suscripción paga no expirada
+    if (admin.plan_status === 'active' && admin.plan_paid_until) {
+      if (new Date(admin.plan_paid_until) < hoy) {
         await supabase
           .from('admins')
           .update({ plan_status: 'suspended' })

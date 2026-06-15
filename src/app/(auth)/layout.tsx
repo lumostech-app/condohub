@@ -25,11 +25,14 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
     <div className="min-h-screen bg-gray-50">
       {/* Banner de trial */}
       {admin?.plan_status === 'trial' && diasRestantes !== null && (
-        <div className={`text-center text-xs py-2 px-4 font-medium ${diasRestantes <= 3 ? 'bg-red-500 text-white' : 'bg-amber-400 text-amber-900'}`}>
+        <Link
+          href="/suscripcion"
+          className={`block text-center text-xs py-2 px-4 font-medium hover:opacity-90 transition-opacity ${diasRestantes <= 3 ? 'bg-red-500 text-white' : 'bg-amber-400 text-amber-900'}`}
+        >
           {diasRestantes === 0
-            ? '⚠️ Tu período de prueba vence hoy. Contáctanos para continuar.'
-            : `⏳ Período de prueba: ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''} restante${diasRestantes !== 1 ? 's' : ''}`}
-        </div>
+            ? '⚠️ Tu período de prueba vence hoy · Toca para pagar'
+            : `⏳ ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''} de prueba restante${diasRestantes !== 1 ? 's' : ''} · Toca para suscribirte`}
+        </Link>
       )}
 
       {/* Barra de navegación móvil inferior */}
