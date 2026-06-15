@@ -15,6 +15,25 @@
    - Redirect URLs: `https://condohub.com/api/auth/callback`
 5. En Authentication > Email Templates:
    - Cambiar idioma a español (opcional)
+6. Ejecutar migraciones adicionales:
+   - `supabase/migrations/003_paypal.sql`
+   - `supabase/migrations/004_google_auth_residentes.sql`
+
+## 1.1 Google OAuth (Portal de Residentes)
+
+1. Ir a [console.cloud.google.com](https://console.cloud.google.com)
+2. Crear proyecto → **APIs & Services** → **OAuth consent screen**:
+   - User type: External
+   - App name: `CondoHub`
+   - Authorized domains: `condohub.com`
+3. **Credentials** → Create credentials → **OAuth 2.0 Client ID**:
+   - Application type: Web application
+   - Authorized redirect URIs: `https://<tu-proyecto>.supabase.co/auth/v1/callback`
+4. Copiar **Client ID** y **Client Secret**
+5. En Supabase → **Authentication > Providers > Google**:
+   - Enable Google Provider
+   - Pegar Client ID y Client Secret
+6. Agregar email a los propietarios en el dashboard para que puedan iniciar sesión
 
 ## 2. Twilio WhatsApp
 
