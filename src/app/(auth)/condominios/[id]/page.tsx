@@ -23,12 +23,14 @@ export default async function CondominioDetallePage({ params }: { params: { id: 
   const [
     { count: totalUnidades },
     { count: totalPropietarios },
+    { count: totalInquilinos },
     { data: cuotasMes },
     { data: configCuota },
     { data: gastosMes },
   ] = await Promise.all([
     supabase.from('unidades').select('*', { count: 'exact', head: true }).eq('condominio_id', params.id),
     supabase.from('propietarios').select('*', { count: 'exact', head: true }).eq('unidad_id', params.id),
+    supabase.from('inquilinos').select('*', { count: 'exact', head: true }).eq('unidad_id', params.id),
     supabase.from('cuotas').select('estado, total_debido').eq('condominio_id', params.id).eq('mes', mes).eq('anio', anio),
     supabase.from('config_cuotas').select('monto_base').eq('condominio_id', params.id).single(),
     supabase.from('gastos').select('monto').eq('condominio_id', params.id).gte('fecha', `${anio}-${String(mes).padStart(2, '0')}-01`),
@@ -41,24 +43,34 @@ export default async function CondominioDetallePage({ params }: { params: { id: 
   const gastosTotalMes = gastosMes?.reduce((s, g) => s + g.monto, 0) ?? 0
 
   const secciones = [
-    { href: `/condominios/${params.id}/unidades`,     icon: '🏠', label: 'Unidades',     desc: `${totalUnidades ?? 0} registradas` },
-    { href: `/condominios/${params.id}/propietarios`, icon: '👤', label: 'Propietarios', desc: 'Residentes y propietarios' },
-    { href: `/condominios/${params.id}/cuotas`,       icon: '💰', label: 'Cuotas',       desc: `${pagadas} pagadas · ${morosas} morosas` },
-    { href: `/condominios/${params.id}/gastos`,       icon: '📋', label: 'Gastos',       desc: 'Proveedores y empleados' },
-    { href: `/condominios/${params.id}/reportes`,     icon: '📊', label: 'Reporte',      desc: 'Resumen del mes' },
+    { href: `/condominios/${params.id}/unidades`,      icon: '🏠', label: 'Unidades',      desc: `${totalUnidades ?? 0} registradas` },
+    { href: `/condominios/${params.id}/propietarios`,  icon: '👤', label: 'Propietarios',  desc: `${totalPropietarios ?? 0} registrados` },
+    { href: `/condominios/${params.id}/inquilinos`,    icon: '🔑', label: 'Inquilinos',    desc: `${totalInquilinos ?? 0} registrados` },
+    { href: `/condominios/${params.id}/cuotas`,        icon: '💰', label: 'Cuotas',        desc: `${pagadas} pagadas · ${morosas} morosas` },
+    { href: `/condominios/${params.id}/gastos`,        icon: '📋', label: 'Gastos',        desc: 'Proveedores y empleados' },
+    { href: `/condominios/${params.id}/reportes`,      icon: '📊', label: 'Reporte',       desc: 'Resumen del mes' },
+    { href: `/condominios/${params.id}/configuracion`, icon: '⚙️', label: 'Configuración', desc: configCuota?.monto_base ? `RD$${configCuota.monto_base.toLocaleString()}/mes` : 'Sin configurar' },
   ]
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6">
       {/* Header */}
-      <div className="mb-6">
-        <Link href="/condominios" className="text-sm text-gray-400 hover:text-gray-600">
-          ‹ Mis condominios
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <Link href="/condominios" className="text-sm text-gray-400 hover:text-gray-600">
+            ‹ Mis condominios
+          </Link>
+          <h1 className="text-xl font-bold text-gray-900 mt-2">{condominio.nombre}</h1>
+          {condominio.direccion && (
+            <p className="text-sm text-gray-400 mt-0.5">{condominio.direccion}</p>
+          )}
+        </div>
+        <Link
+          href={`/condominios/${params.id}/editar`}
+          className="text-xs text-blue-600 font-medium mt-2 px-3 py-1.5 border border-blue-100 rounded-lg hover:bg-blue-50 transition-colors"
+        >
+          Editar
         </Link>
-        <h1 className="text-xl font-bold text-gray-900 mt-2">{condominio.nombre}</h1>
-        {condominio.direccion && (
-          <p className="text-sm text-gray-400 mt-0.5">{condominio.direccion}</p>
-        )}
       </div>
 
       {/* Balance del mes */}
@@ -96,12 +108,12 @@ export default async function CondominioDetallePage({ params }: { params: { id: 
 
       {/* Cuota no configurada */}
       {!configCuota?.monto_base && (
-        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4">
+        <Link href={`/condominios/${params.id}/configuracion`} className="block bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4 hover:bg-amber-100 transition-colors">
           <p className="text-sm font-medium text-amber-800">⚠️ Cuota no configurada</p>
           <p className="text-xs text-amber-600 mt-1">
-            Configura el monto para que el sistema genere cuotas y envíe recordatorios.
+            Toca aquí para configurar el monto y el sistema generará cuotas automáticamente.
           </p>
-        </div>
+        </Link>
       )}
 
       {/* Secciones */}

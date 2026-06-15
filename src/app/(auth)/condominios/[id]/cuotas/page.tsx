@@ -75,9 +75,18 @@ export default function CuotasPage() {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <Link href={`/condominios/${id}`} className="text-sm text-gray-400">‹ Volver</Link>
-        <h1 className="text-xl font-bold text-gray-900 mt-1">Cuotas</h1>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <Link href={`/condominios/${id}`} className="text-sm text-gray-400">‹ Volver</Link>
+          <h1 className="text-xl font-bold text-gray-900 mt-1">Cuotas</h1>
+        </div>
+        <a
+          href={`/api/condominios/${id}/cuotas/export?mes=${mes}&anio=${anio}`}
+          download
+          className="text-xs text-green-700 font-medium mt-2 px-3 py-1.5 border border-green-200 rounded-lg bg-green-50 hover:bg-green-100 transition-colors"
+        >
+          ↓ Excel
+        </a>
       </div>
 
       {/* Selector mes */}
