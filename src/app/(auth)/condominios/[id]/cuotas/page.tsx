@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/utils'
 
 interface Cuota {
   id: string
+  unidad_id: string
   estado: string
   monto_base: number
   mora_acumulada: number
@@ -55,7 +56,7 @@ export default function CuotasPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         cuota_id: modalPago.id,
-        unidad_id: (modalPago.unidades as unknown as { id: string }).id,
+        unidad_id: modalPago.unidad_id,
         monto: Number(formPago.monto) || modalPago.total_debido,
         banco: formPago.banco || null,
         referencia: formPago.referencia || null,

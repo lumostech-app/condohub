@@ -126,7 +126,7 @@ FECHA HOY: ${hoy}
 MES ACTUAL: ${mes}/${anio}
 
 Interpreta el siguiente mensaje del administrador e identifica:
-1. INTENCIÓN (pago_cuota | gasto | consulta_morosos | consulta_balance | reporte | cambio_condominio | desconocido)
+1. INTENCIÓN (pago_cuota | gasto | consulta_morosos | consulta_balance | reporte | cambio_condominio | agregar_propietario | bloquear_unidad | desbloquear_unidad | desconocido)
 2. DATOS EXTRAÍDOS según la intención
 
 Responde ÚNICAMENTE con JSON válido:
@@ -138,7 +138,9 @@ Responde ÚNICAMENTE con JSON válido:
     "categoria": null,
     "descripcion": null,
     "mes": null,
-    "condominio_nombre": null
+    "condominio_nombre": null,
+    "nombre": null,
+    "telefono": null
   },
   "respuesta": "respuesta breve en español dominicano si no entendiste o necesitas más info"
 }
@@ -452,6 +454,86 @@ ${Object.entries(gastosPorCategoria ?? {}).map(([k, v]) => `   • ${k}: RD$${v.
 ✅ Saldo: RD$${(ingresos - totalGastos).toLocaleString()}`
     }
 
+    case 'agregar_propietario': {
+      const codigo = String(interpretacion.datos.unidad_codigo ?? '').toUpperCase()
+      const nombre = String(interpretacion.datos.nombre ?? '').trim()
+      const telefono = String(interpretacion.datos.telefono ?? '').trim() || null
+
+      if (!codigo) return '¿En qué unidad? Ej: "agrega Juan Pérez en A3 809-555-1234"'
+      if (!nombre) return '¿Cuál es el nombre del propietario?'
+
+      const { data: unidad } = await supabase
+        .from('unidades')
+        .select('id, codigo')
+        .eq('condominio_id', condominioActivo.id)
+        .ilike('codigo', codigo)
+        .single()
+
+      if (!unidad) return `❌ Unidad ${codigo} no encontrada en ${condominioActivo.nombre}.`
+
+      const { error: errProp } = await supabase.from('propietarios').insert({
+        admin_id: admin.id,
+        unidad_id: unidad.id,
+        nombre,
+        telefono,
+      })
+
+      if (errProp) return `❌ Error al agregar: ${errProp.message}`
+
+      return `✅ Propietario agregado:
+👤 ${nombre}
+📍 Unidad ${unidad.codigo}
+${telefono ? `📱 ${telefono}` : ''}`
+    }
+
+    case 'bloquear_unidad': {
+      const codigo = String(interpretacion.datos.unidad_codigo ?? '').toUpperCase()
+      if (!codigo) return '¿Qué unidad quieres bloquear? Ej: "bloquea C1"'
+
+      const { data: unidad } = await supabase
+        .from('unidades')
+        .select('id, codigo')
+        .eq('condominio_id', condominioActivo.id)
+        .ilike('codigo', codigo)
+        .single()
+
+      if (!unidad) return `❌ Unidad ${codigo} no encontrada.`
+
+      await supabase
+        .from('cuotas')
+        .update({ estado: 'bloqueado' })
+        .eq('unidad_id', unidad.id)
+        .eq('mes', mes)
+        .eq('anio', anio)
+        .neq('estado', 'pagado')
+
+      return `🔒 Unidad ${codigo} bloqueada para ${getMesNombreBot(mes, anio)}.`
+    }
+
+    case 'desbloquear_unidad': {
+      const codigo = String(interpretacion.datos.unidad_codigo ?? '').toUpperCase()
+      if (!codigo) return '¿Qué unidad quieres desbloquear? Ej: "desbloquea C1"'
+
+      const { data: unidad } = await supabase
+        .from('unidades')
+        .select('id, codigo')
+        .eq('condominio_id', condominioActivo.id)
+        .ilike('codigo', codigo)
+        .single()
+
+      if (!unidad) return `❌ Unidad ${codigo} no encontrada.`
+
+      await supabase
+        .from('cuotas')
+        .update({ estado: 'pendiente' })
+        .eq('unidad_id', unidad.id)
+        .eq('mes', mes)
+        .eq('anio', anio)
+        .eq('estado', 'bloqueado')
+
+      return `🔓 Unidad ${codigo} desbloqueada. Las cuotas pendientes están activas nuevamente.`
+    }
+
     case 'cambio_condominio': {
       const nombreBuscado = String(interpretacion.datos.condominio_nombre ?? '').toLowerCase()
       const encontrado = condominios.find(c => c.nombre.toLowerCase().includes(nombreBuscado))
@@ -467,7 +549,7 @@ ${Object.entries(gastosPorCategoria ?? {}).map(([k, v]) => `   • ${k}: RD$${v.
 
     default: {
       if (interpretacion.respuesta) return interpretacion.respuesta
-      return `No entendí ese mensaje. Prueba:\n• "morosos"\n• "pago A3" + foto\n• "gasto luz 4500"\n• "cuanto debe B2"\n• "reporte"`
+      return `No entendí ese mensaje. Prueba:\n• "morosos"\n• "pago A3" + foto\n• "gasto luz 4500"\n• "cuanto debe B2"\n• "reporte"\n• "agrega Juan en A3 809-555-1234"\n• "bloquea C1" / "desbloquea C1"`
     }
   }
 }

@@ -14,12 +14,15 @@ interface Unidad {
   edificios: { nombre: string } | null
 }
 
+const FORM_VACIO = { codigo: '', tipo: 'apartamento', piso: '', parqueos: '0' }
+
 export default function UnidadesPage() {
   const { id } = useParams<{ id: string }>()
   const [unidades, setUnidades] = useState<Unidad[]>([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState(false)
-  const [form, setForm] = useState({ codigo: '', tipo: 'apartamento', piso: '', parqueos: '0' })
+  const [modal, setModal] = useState<'nuevo' | 'editar' | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [form, setForm] = useState(FORM_VACIO)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,6 +34,20 @@ export default function UnidadesPage() {
   }
 
   useEffect(() => { cargar() }, [id])
+
+  function abrirEditar(u: Unidad) {
+    setEditId(u.id)
+    setForm({ codigo: u.codigo, tipo: u.tipo, piso: u.piso ? String(u.piso) : '', parqueos: String(u.parqueos) })
+    setModal('editar')
+    setError(null)
+  }
+
+  function cerrarModal() {
+    setModal(null)
+    setEditId(null)
+    setForm(FORM_VACIO)
+    setError(null)
+  }
 
   async function agregar(e: React.FormEvent) {
     e.preventDefault()
@@ -46,8 +63,25 @@ export default function UnidadesPage() {
     setGuardando(false)
 
     if (!res.ok) { setError(data.error); return }
-    setModal(false)
-    setForm({ codigo: '', tipo: 'apartamento', piso: '', parqueos: '0' })
+    cerrarModal()
+    cargar()
+  }
+
+  async function guardarEdicion(e: React.FormEvent) {
+    e.preventDefault()
+    setGuardando(true)
+    setError(null)
+
+    const res = await fetch(`/api/condominios/${id}/unidades`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editId, ...form, piso: form.piso ? Number(form.piso) : null, parqueos: Number(form.parqueos) }),
+    })
+    const data = await res.json()
+    setGuardando(false)
+
+    if (!res.ok) { setError(data.error); return }
+    cerrarModal()
     cargar()
   }
 
@@ -75,7 +109,7 @@ export default function UnidadesPage() {
           <h1 className="text-xl font-bold text-gray-900 mt-1">Unidades</h1>
         </div>
         <button
-          onClick={() => setModal(true)}
+          onClick={() => { setModal('nuevo'); setError(null) }}
           className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium"
         >
           + Nueva
@@ -105,23 +139,30 @@ export default function UnidadesPage() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => eliminar(u.id)}
-                className="text-gray-300 hover:text-red-400 transition-colors text-lg"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => abrirEditar(u)} className="text-xs text-blue-500 hover:text-blue-700 font-medium px-2 py-1">
+                  Editar
+                </button>
+                <button
+                  onClick={() => eliminar(u.id)}
+                  className="text-gray-300 hover:text-red-400 transition-colors text-lg"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Modal agregar */}
+      {/* Modal nuevo / editar */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center px-4">
           <div className="bg-white rounded-3xl w-full max-w-sm p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Nueva unidad</h2>
-            <form onSubmit={agregar} className="space-y-3">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              {modal === 'nuevo' ? 'Nueva unidad' : 'Editar unidad'}
+            </h2>
+            <form onSubmit={modal === 'nuevo' ? agregar : guardarEdicion} className="space-y-3">
               {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
               <div>
                 <label className="text-sm font-medium text-gray-700">Código *</label>
@@ -168,11 +209,11 @@ export default function UnidadesPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setModal(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm">
+                <button type="button" onClick={cerrarModal} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm">
                   Cancelar
                 </button>
                 <button type="submit" disabled={guardando} className="flex-1 bg-blue-600 text-white py-3 rounded-xl text-sm font-medium disabled:opacity-50">
-                  {guardando ? 'Guardando...' : 'Agregar'}
+                  {guardando ? 'Guardando...' : modal === 'nuevo' ? 'Agregar' : 'Guardar'}
                 </button>
               </div>
             </form>

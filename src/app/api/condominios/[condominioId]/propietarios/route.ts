@@ -50,6 +50,39 @@ export async function POST(request: NextRequest, { params }: { params: { condomi
   return NextResponse.json({ propietario: data })
 }
 
+export async function PATCH(request: NextRequest, { params }: { params: { condominioId: string } }) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const body = await request.json()
+  const { id, nombre, cedula, telefono, email, unidad_id } = body
+
+  if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+  if (!nombre?.trim()) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 })
+
+  if (unidad_id) {
+    const { data: unidad } = await supabase
+      .from('unidades')
+      .select('id')
+      .eq('id', unidad_id)
+      .eq('condominio_id', params.condominioId)
+      .single()
+    if (!unidad) return NextResponse.json({ error: 'Unidad no encontrada' }, { status: 404 })
+  }
+
+  const { data, error } = await supabase
+    .from('propietarios')
+    .update({ nombre: nombre.trim(), cedula: cedula ?? null, telefono: telefono ?? null, email: email ?? null, unidad_id: unidad_id || null })
+    .eq('id', id)
+    .eq('admin_id', user.id)
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ propietario: data })
+}
+
 export async function DELETE(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

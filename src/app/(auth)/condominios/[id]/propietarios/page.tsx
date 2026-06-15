@@ -19,13 +19,16 @@ interface Unidad {
   codigo: string
 }
 
+const FORM_VACIO = { nombre: '', cedula: '', telefono: '', email: '', unidad_id: '' }
+
 export default function PropietariosPage() {
   const { id } = useParams<{ id: string }>()
   const [propietarios, setPropietarios] = useState<Propietario[]>([])
   const [unidades, setUnidades] = useState<Unidad[]>([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal] = useState(false)
-  const [form, setForm] = useState({ nombre: '', cedula: '', telefono: '', email: '', unidad_id: '' })
+  const [modal, setModal] = useState<'nuevo' | 'editar' | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [form, setForm] = useState(FORM_VACIO)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,6 +46,20 @@ export default function PropietariosPage() {
 
   useEffect(() => { cargar() }, [id])
 
+  function abrirEditar(p: Propietario) {
+    setEditId(p.id)
+    setForm({ nombre: p.nombre, cedula: p.cedula ?? '', telefono: p.telefono ?? '', email: p.email ?? '', unidad_id: p.unidad_id ?? '' })
+    setModal('editar')
+    setError(null)
+  }
+
+  function cerrarModal() {
+    setModal(null)
+    setEditId(null)
+    setForm(FORM_VACIO)
+    setError(null)
+  }
+
   async function agregar(e: React.FormEvent) {
     e.preventDefault()
     setGuardando(true)
@@ -57,8 +74,25 @@ export default function PropietariosPage() {
     setGuardando(false)
 
     if (!res.ok) { setError(data.error); return }
-    setModal(false)
-    setForm({ nombre: '', cedula: '', telefono: '', email: '', unidad_id: '' })
+    cerrarModal()
+    cargar()
+  }
+
+  async function editar(e: React.FormEvent) {
+    e.preventDefault()
+    setGuardando(true)
+    setError(null)
+
+    const res = await fetch(`/api/condominios/${id}/propietarios`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editId, ...form }),
+    })
+    const data = await res.json()
+    setGuardando(false)
+
+    if (!res.ok) { setError(data.error); return }
+    cerrarModal()
     cargar()
   }
 
@@ -72,6 +106,13 @@ export default function PropietariosPage() {
     cargar()
   }
 
+  const CAMPOS = [
+    { name: 'nombre', label: 'Nombre *', placeholder: 'María González', required: true },
+    { name: 'cedula', label: 'Cédula', placeholder: '001-1234567-8', required: false },
+    { name: 'telefono', label: 'WhatsApp', placeholder: '809-555-1234', required: false },
+    { name: 'email', label: 'Email', placeholder: 'maria@email.com', required: false },
+  ]
+
   return (
     <main className="max-w-2xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
@@ -79,7 +120,7 @@ export default function PropietariosPage() {
           <Link href={`/condominios/${id}`} className="text-sm text-gray-400">‹ Volver</Link>
           <h1 className="text-xl font-bold text-gray-900 mt-1">Propietarios</h1>
         </div>
-        <button onClick={() => setModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium">
+        <button onClick={() => { setModal('nuevo'); setError(null) }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium">
           + Nuevo
         </button>
       </div>
@@ -108,27 +149,30 @@ export default function PropietariosPage() {
                   </p>
                 </div>
               </div>
-              <button onClick={() => eliminar(p.id)} className="text-gray-300 hover:text-red-400 transition-colors text-lg">
-                ×
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => abrirEditar(p)} className="text-xs text-blue-500 hover:text-blue-700 font-medium px-2 py-1">
+                  Editar
+                </button>
+                <button onClick={() => eliminar(p.id)} className="text-gray-300 hover:text-red-400 transition-colors text-lg">
+                  ×
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* Modal nuevo / editar */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center px-4">
           <div className="bg-white rounded-3xl w-full max-w-sm p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Nuevo propietario</h2>
-            <form onSubmit={agregar} className="space-y-3">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              {modal === 'nuevo' ? 'Nuevo propietario' : 'Editar propietario'}
+            </h2>
+            <form onSubmit={modal === 'nuevo' ? agregar : editar} className="space-y-3">
               {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
 
-              {[
-                { name: 'nombre', label: 'Nombre *', placeholder: 'María González', required: true },
-                { name: 'cedula', label: 'Cédula', placeholder: '001-1234567-8', required: false },
-                { name: 'telefono', label: 'WhatsApp', placeholder: '809-555-1234', required: false },
-                { name: 'email', label: 'Email', placeholder: 'maria@email.com', required: false },
-              ].map(f => (
+              {CAMPOS.map(f => (
                 <div key={f.name}>
                   <label className="text-sm font-medium text-gray-700">{f.label}</label>
                   <input
@@ -156,11 +200,11 @@ export default function PropietariosPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setModal(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm">
+                <button type="button" onClick={cerrarModal} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm">
                   Cancelar
                 </button>
                 <button type="submit" disabled={guardando} className="flex-1 bg-blue-600 text-white py-3 rounded-xl text-sm font-medium disabled:opacity-50">
-                  {guardando ? 'Guardando...' : 'Agregar'}
+                  {guardando ? 'Guardando...' : modal === 'nuevo' ? 'Agregar' : 'Guardar'}
                 </button>
               </div>
             </form>

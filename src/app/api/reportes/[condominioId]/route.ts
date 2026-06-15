@@ -38,8 +38,8 @@ export async function GET(request: NextRequest, { params }: { params: { condomin
       .lte('fecha', fechaFin),
     supabase
       .from('pagos')
-      .select('monto, fecha_pago, banco, metodo, unidades(codigo)')
-      .eq('condominio_id', params.condominioId ?? '')
+      .select('monto, fecha_pago, banco, metodo, unidades!inner(codigo, condominio_id)')
+      .eq('unidades.condominio_id', params.condominioId)
       .gte('fecha_pago', fechaInicio)
       .lte('fecha_pago', fechaFin),
   ])

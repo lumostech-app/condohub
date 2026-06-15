@@ -10,11 +10,28 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
 
   const { data: admin } = await supabase
     .from('admins')
-    .select('nombre, plan')
+    .select('nombre, plan, plan_status, trial_ends_at')
     .single()
+
+  if (admin?.plan_status === 'suspended') redirect('/suspendido')
+
+  let diasRestantes: number | null = null
+  if (admin?.plan_status === 'trial' && admin?.trial_ends_at) {
+    const diff = new Date(admin.trial_ends_at).getTime() - Date.now()
+    diasRestantes = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Banner de trial */}
+      {admin?.plan_status === 'trial' && diasRestantes !== null && (
+        <div className={`text-center text-xs py-2 px-4 font-medium ${diasRestantes <= 3 ? 'bg-red-500 text-white' : 'bg-amber-400 text-amber-900'}`}>
+          {diasRestantes === 0
+            ? '⚠️ Tu período de prueba vence hoy. Contáctanos para continuar.'
+            : `⏳ Período de prueba: ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''} restante${diasRestantes !== 1 ? 's' : ''}`}
+        </div>
+      )}
+
       {/* Barra de navegación móvil inferior */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50">
         <div className="max-w-2xl mx-auto flex justify-around py-2">

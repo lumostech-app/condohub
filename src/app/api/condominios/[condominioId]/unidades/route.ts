@@ -40,6 +40,30 @@ export async function POST(request: NextRequest, { params }: { params: { condomi
   return NextResponse.json({ unidad: data })
 }
 
+export async function PATCH(request: NextRequest, { params }: { params: { condominioId: string } }) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const body = await request.json()
+  const { id, codigo, tipo, piso, parqueos } = body
+
+  if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+  if (!codigo?.trim()) return NextResponse.json({ error: 'Código requerido' }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from('unidades')
+    .update({ codigo: codigo.trim().toUpperCase(), tipo: tipo ?? 'apartamento', piso: piso ?? null, parqueos: parqueos ?? 0 })
+    .eq('id', id)
+    .eq('condominio_id', params.condominioId)
+    .eq('admin_id', user.id)
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ unidad: data })
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: { condominioId: string } }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
