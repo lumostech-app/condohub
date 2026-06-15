@@ -1,4 +1,16 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'CondoHub — Administra tu condominio desde WhatsApp',
+  description: 'La herramienta de administración de condominios más fácil de República Dominicana. Registra pagos, cobra cuotas y gestiona morosos directamente desde WhatsApp.',
+  openGraph: {
+    title: 'CondoHub — Administra tu condominio desde WhatsApp',
+    description: 'La herramienta de administración de condominios más fácil de República Dominicana.',
+    locale: 'es_DO',
+    type: 'website',
+  },
+}
 
 const FEATURES = [
   {

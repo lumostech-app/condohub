@@ -1,4 +1,10 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Precios — CondoHub',
+  description: 'Planes desde RD$990/mes. Elige el plan ideal para tu condominio. Prueba gratis 14 días sin tarjeta de crédito.',
+}
 
 const PLANES = [
   {

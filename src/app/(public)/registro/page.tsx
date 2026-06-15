@@ -48,7 +48,7 @@ export default function RegistroPage() {
       return
     }
 
-    router.push('/dashboard')
+    router.push('/verificar-email')
   }
 
   const PLANES = [

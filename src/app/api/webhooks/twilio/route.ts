@@ -126,7 +126,7 @@ FECHA HOY: ${hoy}
 MES ACTUAL: ${mes}/${anio}
 
 Interpreta el siguiente mensaje del administrador e identifica:
-1. INTENCIÓN (pago_cuota | gasto | consulta_morosos | consulta_balance | reporte | cambio_condominio | agregar_propietario | bloquear_unidad | desbloquear_unidad | desconocido)
+1. INTENCIÓN (pago_cuota | gasto | consulta_morosos | consulta_balance | reporte | cambio_condominio | agregar_propietario | bloquear_unidad | desbloquear_unidad | ayuda | desconocido)
 2. DATOS EXTRAÍDOS según la intención
 
 Responde ÚNICAMENTE con JSON válido:
@@ -548,8 +548,35 @@ ${telefono ? `📱 ${telefono}` : ''}`
     }
 
     default: {
+      const textoLower = texto.toLowerCase().trim()
+      if (textoLower === 'ayuda' || textoLower === 'help' || textoLower === '?') {
+        return `📋 *Comandos disponibles:*
+
+💰 *Pagos*
+• "pago A3 3500" — registra pago manual
+• Foto de comprobante — extrae datos automático
+
+📊 *Consultas*
+• "morosos" — lista de unidades con cuota pendiente
+• "cuanto debe A3" — balance de una unidad
+• "reporte" — resumen del mes
+
+📝 *Registrar*
+• "gasto luz 4500" — registra un gasto
+• "agrega Juan en A3 809-555-1234" — nuevo propietario
+
+🔒 *Control*
+• "bloquea A3" — bloquea reservas de unidad
+• "desbloquea A3" — activa unidad bloqueada
+
+🏢 *Condominios*
+• "cambiar a [nombre]" — cambia el condominio activo
+
+Condominio activo: *${condominioActivo.nombre}*`
+      }
+
       if (interpretacion.respuesta) return interpretacion.respuesta
-      return `No entendí ese mensaje. Prueba:\n• "morosos"\n• "pago A3" + foto\n• "gasto luz 4500"\n• "cuanto debe B2"\n• "reporte"\n• "agrega Juan en A3 809-555-1234"\n• "bloquea C1" / "desbloquea C1"`
+      return `No entendí ese mensaje. Escribe *ayuda* para ver los comandos disponibles.`
     }
   }
 }
@@ -662,7 +689,37 @@ async function handleResidente(
 ¿Confirmo tu pago? (sí/no)`
   }
 
-  return `Hola ${propietario.nombre.split(' ')[0]} 👋\nPara registrar tu pago, envía la foto del comprobante de transferencia.`
+  // ── Consulta "mi cuota" ───────────────────────────────────────────────────
+  const textoLower = texto.toLowerCase().trim()
+  if (['mi cuota', 'mi deuda', 'cuanto debo', 'cuánto debo', 'balance'].some(k => textoLower.includes(k))) {
+    const { data: cuota } = await supabase
+      .from('cuotas')
+      .select('total_debido, mora_acumulada, estado, fecha_limite')
+      .eq('unidad_id', propietario.unidad_id)
+      .eq('mes', mes)
+      .eq('anio', anio)
+      .single()
+
+    const { data: unidad } = await supabase
+      .from('unidades')
+      .select('codigo')
+      .eq('id', propietario.unidad_id)
+      .single()
+
+    if (!cuota) {
+      return `Hola ${propietario.nombre.split(' ')[0]} 👋\nNo encontré cuota generada para este mes (${getMesNombreBot(mes, anio)}). Contacta a tu administrador.`
+    }
+
+    const estadoEmoji = cuota.estado === 'pagado' ? '✅' : cuota.mora_acumulada > 0 ? '⚠️' : '⏳'
+    return `${estadoEmoji} Tu cuota ${getMesNombreBot(mes, anio)}
+📍 Unidad ${unidad?.codigo ?? ''}
+💰 Total: RD$${cuota.total_debido?.toLocaleString()}
+${cuota.mora_acumulada > 0 ? `⚠️ Mora: RD$${cuota.mora_acumulada?.toLocaleString()}\n` : ''}📅 Fecha límite: ${cuota.fecha_limite}
+Estado: ${cuota.estado.toUpperCase()}
+${cuota.estado !== 'pagado' ? '\nEnvía la foto de tu comprobante para registrar el pago.' : '¡Gracias por pagar a tiempo!'}`
+  }
+
+  return `Hola ${propietario.nombre.split(' ')[0]} 👋\nPuedes:\n• Enviar foto del comprobante para registrar tu pago\n• Escribir "mi cuota" para ver tu balance del mes`
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
