@@ -26,10 +26,20 @@ export default async function DashboardPage() {
     { data: pagosDelMes },
     { data: gastosDelMes },
   ] = await Promise.all([
-    supabase.from('cuotas').select('estado, total_debido').eq('mes', mes).eq('anio', anio),
+    supabase.from('cuotas').select('estado, total_debido, condominio_id').eq('mes', mes).eq('anio', anio),
     supabase.from('pagos').select('monto').gte('fecha_pago', fechaInicioMes),
     supabase.from('gastos').select('monto').gte('fecha', fechaInicioMes),
   ])
+
+  // Stats por condominio
+  const statsPorCondo = (condominios ?? []).reduce((acc, c) => {
+    const cuotasCondo = resumenCuotas?.filter(q => q.condominio_id === c.id) ?? []
+    const total = cuotasCondo.length
+    const pag = cuotasCondo.filter(q => q.estado === 'pagado').length
+    const mor = cuotasCondo.filter(q => q.estado === 'moroso').length
+    acc[c.id] = { total, pagadas: pag, morosas: mor, pct: total > 0 ? Math.round((pag / total) * 100) : null }
+    return acc
+  }, {} as Record<string, { total: number; pagadas: number; morosas: number; pct: number | null }>)
 
   const totalCuotas = resumenCuotas?.length ?? 0
   const pagadas = resumenCuotas?.filter(c => c.estado === 'pagado').length ?? 0
@@ -116,21 +126,41 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {condominios.map(c => (
-                <Link
-                  key={c.id}
-                  href={`/condominios/${c.id}`}
-                  className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-4 hover:border-blue-200 transition-colors"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{c.nombre}</p>
-                    <p className="text-xs text-gray-400 capitalize mt-0.5">
-                      {c.tipo.replace('_', ' ')}
-                    </p>
-                  </div>
-                  <span className="text-gray-300">›</span>
-                </Link>
-              ))}
+              {condominios.map(c => {
+                const stats = statsPorCondo[c.id]
+                return (
+                  <Link
+                    key={c.id}
+                    href={`/condominios/${c.id}`}
+                    className="block bg-white rounded-2xl border border-gray-100 p-4 hover:border-blue-200 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="font-medium text-gray-900">{c.nombre}</p>
+                        <p className="text-xs text-gray-400 capitalize mt-0.5">{c.tipo.replace('_', ' ')}</p>
+                      </div>
+                      <div className="text-right">
+                        {stats?.pct !== null ? (
+                          <p className={`text-sm font-bold ${stats.pct === 100 ? 'text-green-600' : stats.pct >= 70 ? 'text-blue-600' : 'text-red-500'}`}>
+                            {stats.pct}%
+                          </p>
+                        ) : (
+                          <span className="text-gray-300">›</span>
+                        )}
+                        {stats && stats.total > 0 && (
+                          <p className="text-xs text-gray-400">{stats.pagadas}/{stats.total}</p>
+                        )}
+                      </div>
+                    </div>
+                    {stats && stats.total > 0 && (
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
+                        <div className="bg-green-500 h-full" style={{ width: `${(stats.pagadas / stats.total) * 100}%` }} />
+                        {stats.morosas > 0 && <div className="bg-red-400 h-full" style={{ width: `${(stats.morosas / stats.total) * 100}%` }} />}
+                      </div>
+                    )}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </section>

@@ -187,6 +187,9 @@ export default function ConfiguracionPage() {
         </Link>
       </div>
 
+      {/* Cambiar contraseña */}
+      <CambiarContrasena />
+
       <form action="/api/auth/logout" method="POST">
         <button
           type="submit"
@@ -196,5 +199,86 @@ export default function ConfiguracionPage() {
         </button>
       </form>
     </main>
+  )
+}
+
+function CambiarContrasena() {
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({ nueva: '', confirmar: '' })
+  const [loading, setLoading] = useState(false)
+  const [msg, setMsg] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+
+  async function guardar(e: React.FormEvent) {
+    e.preventDefault()
+    if (form.nueva !== form.confirmar) { setMsg({ tipo: 'error', texto: 'Las contraseñas no coinciden.' }); return }
+    if (form.nueva.length < 8) { setMsg({ tipo: 'error', texto: 'Mínimo 8 caracteres.' }); return }
+
+    setLoading(true)
+    setMsg(null)
+    const { createClient } = await import('@/lib/supabase/client')
+    const supabase = createClient()
+    const { error } = await supabase.auth.updateUser({ password: form.nueva })
+    setLoading(false)
+
+    if (error) { setMsg({ tipo: 'error', texto: error.message }); return }
+    setMsg({ tipo: 'ok', texto: 'Contraseña actualizada correctamente.' })
+    setForm({ nueva: '', confirmar: '' })
+    setTimeout(() => { setOpen(false); setMsg(null) }, 2000)
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-gray-700">Contraseña</h2>
+        <button onClick={() => { setOpen(o => !o); setMsg(null) }} className="text-xs text-blue-600 font-medium">
+          {open ? 'Cancelar' : 'Cambiar'}
+        </button>
+      </div>
+
+      {!open && (
+        <p className="text-sm text-gray-400 mt-1">••••••••</p>
+      )}
+
+      {open && (
+        <form onSubmit={guardar} className="mt-4 space-y-3">
+          {msg && (
+            <p className={`text-sm px-3 py-2 rounded-xl ${msg.tipo === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+              {msg.texto}
+            </p>
+          )}
+          <div>
+            <label className="text-xs text-gray-400 uppercase font-semibold">Nueva contraseña</label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={form.nueva}
+              onChange={e => setForm(p => ({ ...p, nueva: e.target.value }))}
+              placeholder="Mínimo 8 caracteres"
+              className="mt-1 w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 uppercase font-semibold">Confirmar contraseña</label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={form.confirmar}
+              onChange={e => setForm(p => ({ ...p, confirmar: e.target.value }))}
+              placeholder="Repite la contraseña"
+              className="mt-1 w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+          >
+            {loading ? 'Guardando...' : 'Actualizar contraseña'}
+          </button>
+        </form>
+      )}
+    </div>
   )
 }

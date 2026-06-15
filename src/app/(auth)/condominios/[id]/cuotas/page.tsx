@@ -25,6 +25,8 @@ const ESTADO_CONFIG = {
   bloqueado:{ label: 'Bloqueado',color: 'bg-gray-100 text-gray-600' },
 }
 
+type Filtro = 'todos' | 'pendiente' | 'moroso' | 'pagado'
+
 export default function CuotasPage() {
   const { id } = useParams<{ id: string }>()
   const hoy = new Date()
@@ -32,6 +34,7 @@ export default function CuotasPage() {
   const [anio, setAnio] = useState(hoy.getFullYear())
   const [cuotas, setCuotas] = useState<Cuota[]>([])
   const [loading, setLoading] = useState(true)
+  const [filtro, setFiltro] = useState<Filtro>('todos')
   const [modalPago, setModalPago] = useState<Cuota | null>(null)
   const [formPago, setFormPago] = useState({ monto: '', banco: '', referencia: '', fecha_pago: hoy.toISOString().split('T')[0] })
   const [guardando, setGuardando] = useState(false)
@@ -72,12 +75,22 @@ export default function CuotasPage() {
   const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
   const pagadas = cuotas.filter(c => c.estado === 'pagado').length
   const morosas = cuotas.filter(c => c.estado === 'moroso').length
+  const pendientes = cuotas.filter(c => c.estado === 'pendiente').length
+
+  const cuotasFiltradas = filtro === 'todos' ? cuotas : cuotas.filter(c => c.estado === filtro)
+
+  const FILTROS: { key: Filtro; label: string; count: number }[] = [
+    { key: 'todos',     label: 'Todas',      count: cuotas.length },
+    { key: 'pendiente', label: 'Pendientes', count: pendientes },
+    { key: 'moroso',    label: 'Morosas',    count: morosas },
+    { key: 'pagado',    label: 'Pagadas',    count: pagadas },
+  ]
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-6">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <Link href={`/condominios/${id}`} className="text-sm text-gray-400">‹ Volver</Link>
+          <Link href={`/condominios/${id}`} className="text-sm text-gray-400">&#8249; Condominio</Link>
           <h1 className="text-xl font-bold text-gray-900 mt-1">Cuotas</h1>
         </div>
         <a
@@ -85,7 +98,7 @@ export default function CuotasPage() {
           download
           className="text-xs text-green-700 font-medium mt-2 px-3 py-1.5 border border-green-200 rounded-lg bg-green-50 hover:bg-green-100 transition-colors"
         >
-          ↓ Excel
+          &#8595; Excel
         </a>
       </div>
 
@@ -104,21 +117,53 @@ export default function CuotasPage() {
         ))}
       </div>
 
-      {/* Resumen */}
+      {/* Resumen + barra de progreso */}
       {cuotas.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-green-50 rounded-2xl p-3 text-center">
-            <p className="text-xl font-bold text-green-600">{pagadas}</p>
-            <p className="text-xs text-gray-500">Pagadas</p>
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="text-center">
+              <p className="text-xl font-bold text-green-600">{pagadas}</p>
+              <p className="text-xs text-gray-400">Pagadas</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xl font-bold text-yellow-500">{pendientes}</p>
+              <p className="text-xs text-gray-400">Pendientes</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xl font-bold text-red-500">{morosas}</p>
+              <p className="text-xs text-gray-400">Morosas</p>
+            </div>
           </div>
-          <div className="bg-yellow-50 rounded-2xl p-3 text-center">
-            <p className="text-xl font-bold text-yellow-500">{cuotas.length - pagadas - morosas}</p>
-            <p className="text-xs text-gray-500">Pendientes</p>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex">
+            <div className="bg-green-500 h-full transition-all" style={{ width: `${cuotas.length > 0 ? (pagadas / cuotas.length) * 100 : 0}%` }} />
+            <div className="bg-yellow-400 h-full transition-all" style={{ width: `${cuotas.length > 0 ? (pendientes / cuotas.length) * 100 : 0}%` }} />
+            <div className="bg-red-500 h-full transition-all" style={{ width: `${cuotas.length > 0 ? (morosas / cuotas.length) * 100 : 0}%` }} />
           </div>
-          <div className="bg-red-50 rounded-2xl p-3 text-center">
-            <p className="text-xl font-bold text-red-500">{morosas}</p>
-            <p className="text-xs text-gray-500">Morosas</p>
-          </div>
+          <p className="text-xs text-gray-400 text-right mt-1">
+            {cuotas.length > 0 ? Math.round((pagadas / cuotas.length) * 100) : 0}% cobrado
+          </p>
+        </div>
+      )}
+
+      {/* Filtros */}
+      {cuotas.length > 0 && (
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {FILTROS.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setFiltro(f.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                filtro === f.key
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {f.label}
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filtro === f.key ? 'bg-white/20' : 'bg-gray-200'}`}>
+                {f.count}
+              </span>
+            </button>
+          ))}
         </div>
       )}
 
@@ -129,9 +174,11 @@ export default function CuotasPage() {
           <p className="text-gray-400 text-sm">Sin cuotas para {MESES[mes - 1]} {anio}</p>
           <p className="text-xs text-gray-300 mt-1">Las cuotas se generan automáticamente el día 1</p>
         </div>
+      ) : cuotasFiltradas.length === 0 ? (
+        <div className="text-center py-8 text-gray-400 text-sm">No hay cuotas en este filtro</div>
       ) : (
         <div className="space-y-2">
-          {cuotas.map(c => {
+          {cuotasFiltradas.map(c => {
             const cfg = ESTADO_CONFIG[c.estado as keyof typeof ESTADO_CONFIG] ?? ESTADO_CONFIG.pendiente
             const unidad = c.unidades
             const propietario = unidad?.propietarios?.[0]
@@ -140,10 +187,13 @@ export default function CuotasPage() {
               <div key={c.id} className="bg-white rounded-2xl border border-gray-100 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm font-bold text-gray-700">{unidad?.codigo}</span>
+                    <span className="font-mono text-sm font-bold text-gray-700 w-10 shrink-0">{unidad?.codigo}</span>
                     <div>
-                      <p className="text-sm text-gray-800">{propietario?.nombre ?? <span className="text-gray-400">Sin propietario</span>}</p>
-                      <p className="text-xs text-gray-400">{formatCurrency(c.total_debido)}{c.mora_acumulada > 0 ? ` (mora: ${formatCurrency(c.mora_acumulada)})` : ''}</p>
+                      <p className="text-sm text-gray-800">{propietario?.nombre ?? <span className="text-gray-400 italic">Sin propietario</span>}</p>
+                      <p className="text-xs text-gray-400">
+                        {formatCurrency(c.total_debido)}
+                        {c.mora_acumulada > 0 && <span className="text-red-400"> · mora {formatCurrency(c.mora_acumulada)}</span>}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -191,9 +241,7 @@ export default function CuotasPage() {
                 </div>
               ))}
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setModalPago(null)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm">
-                  Cancelar
-                </button>
+                <button type="button" onClick={() => setModalPago(null)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm">Cancelar</button>
                 <button type="submit" disabled={guardando} className="flex-1 bg-green-600 text-white py-3 rounded-xl text-sm font-medium disabled:opacity-50">
                   {guardando ? 'Registrando...' : '✓ Registrar'}
                 </button>

@@ -140,11 +140,17 @@ export default function PropietariosPage() {
                   {p.nombre.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{p.nombre}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900">{p.nombre}</p>
+                    {p.email && (
+                      <span className="text-[10px] bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full">Portal</span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400">
                     {[
                       p.unidades?.codigo ? `Unidad ${p.unidades.codigo}` : null,
                       p.telefono,
+                      p.email,
                     ].filter(Boolean).join(' · ')}
                   </p>
                 </div>
@@ -184,6 +190,12 @@ export default function PropietariosPage() {
                   />
                 </div>
               ))}
+
+              <div className="bg-blue-50 rounded-xl p-2.5 text-xs text-blue-700">
+                El email permite al propietario acceder al{' '}
+                <a href="/residentes/login" target="_blank" className="font-semibold underline">Portal de Residentes</a>{' '}
+                con Google.
+              </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700">Unidad</label>
