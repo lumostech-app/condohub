@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/generar-cuotas",
+      "schedule": "0 8 1 * *"
+    },
+    {
+      "path": "/api/cron/calcular-mora",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/recordatorios",
+      "schedule": "0 9 1,5,15 * *"
+    }
+  ]
+}
