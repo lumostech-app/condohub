@@ -29,8 +29,8 @@ export default async function CondominioDetallePage({ params }: { params: { id: 
     { data: gastosMes },
   ] = await Promise.all([
     supabase.from('unidades').select('*', { count: 'exact', head: true }).eq('condominio_id', params.id),
-    supabase.from('propietarios').select('*', { count: 'exact', head: true }).eq('unidad_id', params.id),
-    supabase.from('inquilinos').select('*', { count: 'exact', head: true }).eq('unidad_id', params.id),
+    supabase.from('propietarios').select('*, unidades!inner(condominio_id)', { count: 'exact', head: true }).eq('unidades.condominio_id', params.id),
+    supabase.from('inquilinos').select('*, unidades!inner(condominio_id)', { count: 'exact', head: true }).eq('unidades.condominio_id', params.id),
     supabase.from('cuotas').select('estado, total_debido').eq('condominio_id', params.id).eq('mes', mes).eq('anio', anio),
     supabase.from('config_cuotas').select('monto_base').eq('condominio_id', params.id).single(),
     supabase.from('gastos').select('monto').eq('condominio_id', params.id).gte('fecha', `${anio}-${String(mes).padStart(2, '0')}-01`),
@@ -48,6 +48,9 @@ export default async function CondominioDetallePage({ params }: { params: { id: 
     { href: `/condominios/${params.id}/inquilinos`,    icon: '🔑', label: 'Inquilinos',    desc: `${totalInquilinos ?? 0} registrados` },
     { href: `/condominios/${params.id}/cuotas`,        icon: '💰', label: 'Cuotas',        desc: `${pagadas} pagadas · ${morosas} morosas` },
     { href: `/condominios/${params.id}/gastos`,        icon: '📋', label: 'Gastos',        desc: 'Proveedores y empleados' },
+    { href: `/condominios/${params.id}/empleados`,     icon: '👷', label: 'Empleados',     desc: 'Conserjes y personal' },
+    { href: `/condominios/${params.id}/areas`,         icon: '🏊', label: 'Áreas comunes', desc: 'Piscina, salón, gimnasio' },
+    { href: `/condominios/${params.id}/pagos`,         icon: '🧾', label: 'Pagos recibidos', desc: 'Historial de cobros' },
     { href: `/condominios/${params.id}/reportes`,      icon: '📊', label: 'Reporte',       desc: 'Resumen del mes' },
     { href: `/condominios/${params.id}/configuracion`, icon: '⚙️', label: 'Configuración', desc: configCuota?.monto_base ? `RD$${configCuota.monto_base.toLocaleString()}/mes` : 'Sin configurar' },
   ]
