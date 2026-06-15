@@ -1,19 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { PLAN_LIMITES } from '@/types'
 
 export default function RegistroPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const planParam = searchParams.get('plan') as keyof typeof PLAN_LIMITES | null
   const [form, setForm] = useState({
     nombre: '',
     email: '',
     telefono: '',
     password: '',
-    plan: 'mini' as keyof typeof PLAN_LIMITES,
+    plan: (planParam && planParam in PLAN_LIMITES ? planParam : 'mini') as keyof typeof PLAN_LIMITES,
   })
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
