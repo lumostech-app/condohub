@@ -113,10 +113,37 @@ export default function PreciosPage() {
     <main className="max-w-5xl mx-auto px-4 py-12">
       <div className="text-center mb-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-3">Planes y precios</h1>
-        <p className="text-gray-500 text-sm">14 días gratis en todos los planes · Sin tarjeta de crédito</p>
+        <p className="text-gray-500 text-sm">Empieza gratis hoy · Sin tarjeta de crédito</p>
       </div>
 
-      {/* Grid de planes */}
+      {/* Plan Gratis — destacado */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">GRATIS</div>
+          <div>
+            <p className="font-bold text-gray-900 text-lg">Plan Gratuito</p>
+            <p className="text-sm text-gray-500">1 condominio · hasta 10 unidades · Sin límite de tiempo</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-6">
+          <ul className="hidden sm:flex flex-col gap-1">
+            {['Bot WhatsApp completo', 'Registro de pagos con IA', 'Reporte mensual'].map(f => (
+              <li key={f} className="flex items-center gap-1.5 text-xs text-gray-600">
+                <span className="text-green-500 shrink-0">✓</span>{f}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/registro?plan=gratis"
+            className="shrink-0 bg-green-600 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors whitespace-nowrap"
+          >
+            Crear cuenta gratis
+          </Link>
+        </div>
+      </div>
+
+      {/* Grid de planes de pago */}
+      <p className="text-xs text-gray-400 text-center mb-4 uppercase tracking-wide font-medium">Planes de pago — 14 días de prueba gratis</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-16">
         {PLANES.map(plan => (
           <div
@@ -160,7 +187,7 @@ export default function PreciosPage() {
                   : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
               }`}
             >
-              Comenzar gratis
+              Comenzar prueba gratis
             </Link>
           </div>
         ))}

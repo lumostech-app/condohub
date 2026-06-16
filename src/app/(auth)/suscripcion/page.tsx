@@ -15,7 +15,7 @@ interface Admin {
   trial_ends_at: string | null
 }
 
-const PLANES_ORDEN: Plan[] = ['mini', 'basico', 'starter', 'pro', 'business']
+const PLANES_ORDEN: Plan[] = ['gratis', 'mini', 'basico', 'starter', 'pro', 'business']
 
 export default function SuscripcionPage() {
   const [admin, setAdmin] = useState<Admin | null>(null)
@@ -69,6 +69,7 @@ export default function SuscripcionPage() {
 
   const precioUSD = PLAN_PRECIOS_USD[planSeleccionado]
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? ''
+  const planEsGratis = planSeleccionado === 'gratis'
 
   return (
     <main className="max-w-lg mx-auto px-4 py-6">
@@ -78,17 +79,20 @@ export default function SuscripcionPage() {
       </div>
 
       {/* Estado actual */}
-      <div className="bg-blue-50 rounded-2xl p-4 mb-6">
-        <p className="text-xs text-blue-500 font-semibold uppercase mb-1">Estado actual</p>
-        <p className="text-sm font-medium text-blue-900 capitalize">
+      <div className={`rounded-2xl p-4 mb-6 ${admin.plan === 'gratis' ? 'bg-green-50' : 'bg-blue-50'}`}>
+        <p className={`text-xs font-semibold uppercase mb-1 ${admin.plan === 'gratis' ? 'text-green-500' : 'text-blue-500'}`}>Estado actual</p>
+        <p className={`text-sm font-medium capitalize ${admin.plan === 'gratis' ? 'text-green-900' : 'text-blue-900'}`}>
           Plan {admin.plan} · <span className="capitalize">{admin.plan_status}</span>
         </p>
+        {admin.plan === 'gratis' && (
+          <p className="text-xs text-green-600 mt-1">Plan gratuito permanente · Sin fecha de vencimiento</p>
+        )}
         {admin.plan_status === 'trial' && admin.trial_ends_at && (
           <p className="text-xs text-blue-600 mt-1">
             Trial hasta {new Date(admin.trial_ends_at).toLocaleDateString('es-DO')}
           </p>
         )}
-        {admin.plan_paid_until && admin.plan_status === 'active' && (
+        {admin.plan_paid_until && admin.plan_status === 'active' && admin.plan !== 'gratis' && (
           <p className="text-xs text-blue-600 mt-1">
             Activo hasta {new Date(admin.plan_paid_until).toLocaleDateString('es-DO')}
           </p>
@@ -103,11 +107,14 @@ export default function SuscripcionPage() {
             const l = PLAN_LIMITES[plan]
             const usd = PLAN_PRECIOS_USD[plan]
             const selected = planSeleccionado === plan
+            const isGratis = plan === 'gratis'
             return (
               <label
                 key={plan}
                 className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-colors ${
-                  selected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                  selected && isGratis ? 'border-green-500 bg-green-50' :
+                  selected ? 'border-blue-500 bg-blue-50' :
+                  'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -125,8 +132,14 @@ export default function SuscripcionPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-gray-800">${usd} <span className="font-normal text-gray-400 text-xs">USD</span></p>
-                  <p className="text-xs text-gray-400">{formatCurrency(l.precio)}</p>
+                  {isGratis ? (
+                    <p className="text-sm font-bold text-green-600">Gratis</p>
+                  ) : (
+                    <>
+                      <p className="text-sm font-bold text-gray-800">${usd} <span className="font-normal text-gray-400 text-xs">USD</span></p>
+                      <p className="text-xs text-gray-400">{formatCurrency(l.precio)}</p>
+                    </>
+                  )}
                 </div>
               </label>
             )
@@ -134,60 +147,67 @@ export default function SuscripcionPage() {
         </div>
       </div>
 
-      {/* PayPal */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold text-gray-700">Pagar con PayPal</p>
-          <p className="text-lg font-bold text-blue-600">${precioUSD} <span className="text-xs font-normal text-gray-400">USD/mes</span></p>
+      {/* Sección de pago — oculta para plan gratis */}
+      {planEsGratis ? (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
+          <p className="text-green-700 font-semibold text-sm mb-1">Tu plan Gratis está activo</p>
+          <p className="text-green-600 text-xs">No necesitas realizar ningún pago. Para acceder a más condominios o unidades, selecciona un plan de pago arriba.</p>
         </div>
-
-        {error && (
-          <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
-            {error}
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold text-gray-700">Pagar con PayPal</p>
+            <p className="text-lg font-bold text-blue-600">${precioUSD} <span className="text-xs font-normal text-gray-400">USD/mes</span></p>
           </div>
-        )}
 
-        {!paypalClientId ? (
-          <div className="bg-gray-50 rounded-xl p-4 text-center">
-            <p className="text-sm text-gray-400">PayPal no configurado.</p>
-            <p className="text-xs text-gray-300 mt-1">Agrega <code>NEXT_PUBLIC_PAYPAL_CLIENT_ID</code> en las variables de entorno.</p>
-          </div>
-        ) : (
-          <PayPalScriptProvider options={{ clientId: paypalClientId, currency: 'USD', intent: 'capture' }}>
-            <PayPalButtons
-              style={{ layout: 'vertical', label: 'pay', shape: 'rect', color: 'blue' }}
-              createOrder={async () => {
-                setError(null)
-                const res = await fetch('/api/paypal/create-order', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ plan: planSeleccionado }),
-                })
-                const data = await res.json()
-                if (!res.ok) { setError(data.error ?? 'Error al crear la orden'); throw new Error(data.error) }
-                return data.orderID
-              }}
-              onApprove={async (data) => {
-                setError(null)
-                const res = await fetch('/api/paypal/capture-order', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ orderID: data.orderID }),
-                })
-                const result = await res.json()
-                if (!res.ok) { setError(result.error ?? 'Error al procesar el pago'); return }
-                setExito(true)
-              }}
-              onError={() => setError('Error al procesar el pago. Intenta de nuevo.')}
-              onCancel={() => setError(null)}
-            />
-          </PayPalScriptProvider>
-        )}
+          {error && (
+            <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
+              {error}
+            </div>
+          )}
 
-        <p className="text-xs text-gray-400 mt-4 text-center">
-          Pago seguro procesado por PayPal · Se renueva manualmente cada mes
-        </p>
-      </div>
+          {!paypalClientId ? (
+            <div className="bg-gray-50 rounded-xl p-4 text-center">
+              <p className="text-sm text-gray-400">PayPal no configurado.</p>
+              <p className="text-xs text-gray-300 mt-1">Agrega <code>NEXT_PUBLIC_PAYPAL_CLIENT_ID</code> en las variables de entorno.</p>
+            </div>
+          ) : (
+            <PayPalScriptProvider options={{ clientId: paypalClientId, currency: 'USD', intent: 'capture' }}>
+              <PayPalButtons
+                style={{ layout: 'vertical', label: 'pay', shape: 'rect', color: 'blue' }}
+                createOrder={async () => {
+                  setError(null)
+                  const res = await fetch('/api/paypal/create-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan: planSeleccionado }),
+                  })
+                  const data = await res.json()
+                  if (!res.ok) { setError(data.error ?? 'Error al crear la orden'); throw new Error(data.error) }
+                  return data.orderID
+                }}
+                onApprove={async (data) => {
+                  setError(null)
+                  const res = await fetch('/api/paypal/capture-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderID: data.orderID }),
+                  })
+                  const result = await res.json()
+                  if (!res.ok) { setError(result.error ?? 'Error al procesar el pago'); return }
+                  setExito(true)
+                }}
+                onError={() => setError('Error al procesar el pago. Intenta de nuevo.')}
+                onCancel={() => setError(null)}
+              />
+            </PayPalScriptProvider>
+          )}
+
+          <p className="text-xs text-gray-400 mt-4 text-center">
+            Pago seguro procesado por PayPal · Se renueva manualmente cada mes
+          </p>
+        </div>
+      )}
 
       {/* Historial de pagos */}
       {historial.length > 0 && (

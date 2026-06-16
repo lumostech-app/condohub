@@ -24,8 +24,8 @@ export default async function SuperAdminPage() {
     supabase.from('whatsapp_conversaciones').select('tipo_usuario').eq('tipo_usuario', 'admin'),
   ])
 
-  // Ingresos mensuales estimados (MRR)
-  const PRECIOS: Record<string, number> = { mini: 990, basico: 1490, starter: 2500, pro: 4500, business: 7500 }
+  // Ingresos mensuales estimados (MRR) — gratis = 0
+  const PRECIOS: Record<string, number> = { gratis: 0, mini: 990, basico: 1490, starter: 2500, pro: 4500, business: 7500 }
   const mrr = (planDistrib ?? [])
     .filter((a: { plan: string }) => (a as { plan: string }).plan)
     .reduce((sum: number, a: { plan: string }) => sum + (PRECIOS[(a as { plan: string }).plan] ?? 0), 0)
@@ -65,7 +65,7 @@ export default async function SuperAdminPage() {
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Distribución por plan</h2>
         <div className="space-y-2">
-          {['mini', 'basico', 'starter', 'pro', 'business'].map(plan => {
+          {['gratis', 'mini', 'basico', 'starter', 'pro', 'business'].map(plan => {
             const count = planCount[plan] ?? 0
             const total = (activos ?? 0) + (trials ?? 0)
             const pct = total > 0 ? Math.round((count / total) * 100) : 0

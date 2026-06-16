@@ -44,7 +44,7 @@ export async function PATCH(
   }
 
   if (accion === 'cambiar_plan' && plan) {
-    const planesValidos = ['mini', 'basico', 'starter', 'pro', 'business']
+    const planesValidos = ['gratis', 'mini', 'basico', 'starter', 'pro', 'business']
     if (!planesValidos.includes(plan)) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 })
     }
