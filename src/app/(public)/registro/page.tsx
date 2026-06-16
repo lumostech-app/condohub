@@ -30,6 +30,11 @@ export default function RegistroPage() {
     setError(null)
 
     const supabase = createClient()
+    // El trigger de BD solo acepta planes pagos en la columna CHECK.
+    // Para 'gratis' pasamos 'mini' al trigger y guardamos la intención
+    // en plan_intend. El callback de verificación hace el upgrade.
+    const planParaTrigger = form.plan === 'gratis' ? 'mini' : form.plan
+
     const { error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
@@ -37,13 +42,19 @@ export default function RegistroPage() {
         data: {
           nombre: form.nombre,
           telefono: form.telefono,
-          plan: form.plan,
+          plan: planParaTrigger,
+          plan_intend: form.plan,
         },
       },
     })
 
     if (error) {
-      setError(error.message)
+      const msg = error.message
+      setError(
+        !msg || msg === '{}' || msg === '[object Object]'
+          ? 'Error al crear la cuenta. Verifica que tu teléfono no esté ya registrado.'
+          : msg
+      )
       setLoading(false)
       return
     }
