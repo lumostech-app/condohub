@@ -1,14 +1,16 @@
 import twilio from 'twilio'
 import { NextResponse } from 'next/server'
 
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID!,
-  process.env.TWILIO_AUTH_TOKEN!
-)
+function getTwilioClient() {
+  return twilio(
+    process.env.TWILIO_ACCOUNT_SID!,
+    process.env.TWILIO_AUTH_TOKEN!
+  )
+}
 
 export async function sendWhatsAppMessage(to: string, body: string) {
   const toFormatted = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`
-  await twilioClient.messages.create({
+  await getTwilioClient().messages.create({
     from: process.env.TWILIO_WHATSAPP_NUMBER!,
     to: toFormatted,
     body,

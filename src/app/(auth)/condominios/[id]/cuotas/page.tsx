@@ -31,7 +31,7 @@ export default function CuotasPage() {
   const { id } = useParams<{ id: string }>()
   const hoy = new Date()
   const [mes, setMes] = useState(hoy.getMonth() + 1)
-  const [anio, setAnio] = useState(hoy.getFullYear())
+  const [anio] = useState(hoy.getFullYear())
   const [cuotas, setCuotas] = useState<Cuota[]>([])
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState<Filtro>('todos')

@@ -164,8 +164,7 @@ async function handleAdmin(
   admin: { id: string; nombre: string; telefono: string },
   conversacion: { id: string; contexto: Contexto },
   texto: string,
-  mediaUrl: string | null,
-  fromNumber: string
+  mediaUrl: string | null
 ): Promise<string> {
   const contexto: Contexto = conversacion.contexto ?? {}
   const hoy = new Date()
@@ -235,7 +234,7 @@ async function handleAdmin(
     return 'No tienes condominios registrados. Crea uno en condohub.com'
   }
 
-  let condominioActivo = condominios.find(c => c.id === contexto.condominio_activo_id) ?? condominios[0]
+  const condominioActivo = condominios.find(c => c.id === contexto.condominio_activo_id) ?? condominios[0]
 
   // ── Imagen recibida → procesar comprobante ────────────────────────────────
   if (mediaUrl) {
@@ -433,7 +432,6 @@ ${cuota.mora_acumulada > 0 ? `⚠️ Mora: RD$${cuota.mora_acumulada?.toLocaleSt
         .gte('fecha', `${anio}-${String(mes).padStart(2, '0')}-01`)
 
       const pagadas = cuotas?.filter(c => c.estado === 'pagado') ?? []
-      const pendientes = cuotas?.filter(c => c.estado !== 'pagado') ?? []
       const ingresos = pagadas.reduce((s, c) => s + c.total_debido, 0)
       const totalGastos = gastos?.reduce((s, g) => s + g.monto, 0) ?? 0
 
@@ -446,7 +444,7 @@ ${cuota.mora_acumulada > 0 ? `⚠️ Mora: RD$${cuota.mora_acumulada?.toLocaleSt
 ${condominioActivo.nombre}
 
 ✅ Pagos: ${pagadas.length}/${cuotas?.length ?? 0}
-⏳ Pendientes: ${pendientes.map(c => '').join('')}${codigosMorosos.slice(0, 5).join(', ')}${codigosMorosos.length > 5 ? ` y ${codigosMorosos.length - 5} más` : ''}
+⏳ Pendientes: ${codigosMorosos.slice(0, 5).join(', ')}${codigosMorosos.length > 5 ? ` y ${codigosMorosos.length - 5} más` : ''}
 
 💰 Ingresos: RD$${ingresos.toLocaleString()}
 📉 Gastos: RD$${totalGastos.toLocaleString()}
@@ -821,8 +819,7 @@ export async function POST(request: NextRequest) {
       admin,
       { id: conversacion.id, contexto: (conversacion.contexto as Contexto) ?? {} },
       texto,
-      mediaUrl,
-      from
+      mediaUrl
     )
   } else if (tipoUsuario === 'residente' && propietario) {
     const adminTelefono = ((propietario.admins as unknown) as { telefono: string } | undefined)?.telefono ?? ''

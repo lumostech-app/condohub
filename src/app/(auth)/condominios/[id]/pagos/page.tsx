@@ -22,7 +22,7 @@ export default function PagosPage() {
   const { id } = useParams<{ id: string }>()
   const hoy = new Date()
   const [mes, setMes] = useState(hoy.getMonth() + 1)
-  const [anio, setAnio] = useState(hoy.getFullYear())
+  const [anio] = useState(hoy.getFullYear())
   const [pagos, setPagos] = useState<Pago[]>([])
   const [loading, setLoading] = useState(true)
 

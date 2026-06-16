@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData()
   const file = formData.get('file') as File | null
-  const condominioId = formData.get('condominioId') as string
 
   if (!file) return NextResponse.json({ error: 'No se recibió archivo' }, { status: 400 })
 

@@ -1,13 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { formatCurrency } from '@/lib/utils'
 
 export default async function SuperAdminPage() {
   const supabase = createAdminClient()
-
-  const hoy = new Date()
-  const mes = hoy.getMonth() + 1
-  const anio = hoy.getFullYear()
 
   const [
     { count: totalAdmins },
