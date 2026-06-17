@@ -13,14 +13,14 @@ export default async function CondominiosPage() {
     .order('created_at', { ascending: true })
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-6">
+    <main className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Condominios</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Mis Condominios</h1>
         <Link
           href="/condominios/nuevo"
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium"
+          className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
         >
-          + Nuevo
+          + Nuevo condominio
         </Link>
       </div>
 

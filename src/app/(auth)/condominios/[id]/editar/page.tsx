@@ -46,17 +46,17 @@ export default function EditarCondominioPage() {
 
   if (loading) {
     return (
-      <main className="max-w-2xl mx-auto px-4 py-6">
+      <main className="max-w-5xl mx-auto">
         <div className="text-center py-12 text-gray-400 text-sm">Cargando...</div>
       </main>
     )
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-6">
+    <main className="max-w-5xl mx-auto">
       <div className="mb-6">
         <Link href={`/condominios/${id}`} className="text-sm text-gray-400">‹ Volver</Link>
-        <h1 className="text-xl font-bold text-gray-900 mt-1">Editar condominio</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mt-1">Editar condominio</h1>
       </div>
 
       <form onSubmit={guardar} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">

@@ -59,14 +59,14 @@ export default function ConfiguracionPage() {
 
   if (!admin) {
     return (
-      <main className="max-w-2xl mx-auto px-4 py-6">
+      <main className="max-w-5xl mx-auto">
         <div className="text-center py-12 text-gray-400 text-sm">Cargando...</div>
       </main>
     )
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-6">
+    <main className="max-w-5xl mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-6">Mi cuenta</h1>
 
       {exito && (

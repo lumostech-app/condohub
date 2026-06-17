@@ -87,11 +87,14 @@ export default function CuotasPage() {
   ]
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-6">
+    <main className="max-w-5xl mx-auto">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <Link href={`/condominios/${id}`} className="text-sm text-gray-400">&#8249; Condominio</Link>
-          <h1 className="text-xl font-bold text-gray-900 mt-1">Cuotas</h1>
+          <Link href={`/condominios/${id}`} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 mb-1 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            Condominio
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">Cuotas</h1>
         </div>
         <a
           href={`/api/condominios/${id}/cuotas/export?mes=${mes}&anio=${anio}`}

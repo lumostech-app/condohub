@@ -75,7 +75,7 @@ export default function SuscripcionPage() {
     <main className="max-w-lg mx-auto px-4 py-6">
       <div className="mb-6">
         <Link href="/configuracion" className="text-sm text-gray-400">‹ Volver</Link>
-        <h1 className="text-xl font-bold text-gray-900 mt-1">Suscripción</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mt-1">Suscripción</h1>
       </div>
 
       {/* Estado actual */}
