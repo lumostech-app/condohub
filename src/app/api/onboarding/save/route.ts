@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { PLAN_LIMITES } from '@/types'
 
 interface EdificioInput {
@@ -24,13 +25,32 @@ export async function POST(request: NextRequest) {
 
   const { estructura }: { estructura: EstructuraInput } = await request.json()
 
-  // Validar límites del plan
-  const { data: admin } = await supabase
+  // Validar límites del plan — usar service role para evitar problemas de RLS
+  const db = createAdminClient()
+  let { data: admin } = await db
     .from('admins')
     .select('plan, plan_status')
+    .eq('id', user.id)
     .single()
 
-  if (!admin) return NextResponse.json({ error: 'Admin no encontrado' }, { status: 404 })
+  // Si no existe el record (trigger falló), crearlo ahora
+  if (!admin) {
+    const plan = user.user_metadata?.plan_intend ?? user.user_metadata?.plan ?? 'gratis'
+    const planValido = ['gratis','mini','basico','starter','pro','business'].includes(plan) ? plan : 'gratis'
+    await db.from('admins').insert({
+      id: user.id,
+      nombre: user.user_metadata?.nombre ?? 'Administrador',
+      email: user.email ?? '',
+      telefono: user.user_metadata?.telefono ?? `pending_${user.id}`,
+      plan: planValido,
+      plan_status: planValido === 'gratis' ? 'active' : 'trial',
+      trial_ends_at: planValido === 'gratis' ? null : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+    const { data: adminNuevo } = await db.from('admins').select('plan, plan_status').eq('id', user.id).single()
+    admin = adminNuevo
+  }
+
+  if (!admin) return NextResponse.json({ error: 'Error al obtener perfil de administrador' }, { status: 500 })
 
   if (admin.plan_status === 'suspended' || admin.plan_status === 'cancelled') {
     return NextResponse.json({ error: 'Tu plan está suspendido. Contacta a soporte.' }, { status: 403 })
@@ -38,9 +58,10 @@ export async function POST(request: NextRequest) {
 
   const limites = PLAN_LIMITES[admin.plan as keyof typeof PLAN_LIMITES]
 
-  const { count: condominiosActuales } = await supabase
+  const { count: condominiosActuales } = await db
     .from('condominios')
     .select('*', { count: 'exact', head: true })
+    .eq('admin_id', user.id)
 
   if ((condominiosActuales ?? 0) >= limites.condominios) {
     return NextResponse.json(
@@ -49,9 +70,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { count: unidadesActuales } = await supabase
+  const { count: unidadesActuales } = await db
     .from('unidades')
     .select('*', { count: 'exact', head: true })
+    .eq('admin_id', user.id)
 
   const nuevasUnidades = estructura.total_unidades
   if ((unidadesActuales ?? 0) + nuevasUnidades > limites.unidades) {
