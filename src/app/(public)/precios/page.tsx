@@ -8,13 +8,13 @@ export const metadata: Metadata = {
 
 const PLANES = [
   {
-    id: 'mini',
-    nombre: 'Mini',
+    id: 'basico',
+    nombre: 'Básico',
     precio: 990,
-    limites: '1 condominio · hasta 10 unidades',
-    para: 'Edificio pequeño o casa de campo',
+    limites: '1 condominio · hasta 40 unidades',
+    para: 'Edificio pequeño o mediano',
     features: [
-      'Bot WhatsApp completo',
+      'Panel web completo',
       'Registro de pagos con IA',
       'Recordatorios automáticos',
       'Reporte mensual',
@@ -24,68 +24,20 @@ const PLANES = [
     badge: null,
   },
   {
-    id: 'basico',
-    nombre: 'Básico',
+    id: 'plus',
+    nombre: 'Básico+',
     precio: 1490,
-    limites: '1 condominio · hasta 30 unidades',
-    para: 'Residencial mediano',
+    limites: '1 condominio · hasta 100 unidades',
+    para: 'Torres y residenciales grandes',
     features: [
-      'Todo lo del Mini',
-      'Hasta 30 unidades',
+      'Todo lo del Básico',
+      'Hasta 100 unidades',
       'Importación desde Excel',
       'Histórico de pagos',
       'Gestión de gastos',
     ],
-    color: 'border-gray-200',
-    badge: null,
-  },
-  {
-    id: 'starter',
-    nombre: 'Starter',
-    precio: 2500,
-    limites: '3 condominios · hasta 80 unidades',
-    para: 'Administrador con varios proyectos',
-    features: [
-      'Todo lo del Básico',
-      'Hasta 3 condominios',
-      'Cambio de condominio por WhatsApp',
-      'Vista consolidada',
-      'Soporte prioritario',
-    ],
     color: 'border-blue-400 ring-2 ring-blue-100',
     badge: 'Más popular',
-  },
-  {
-    id: 'pro',
-    nombre: 'Pro',
-    precio: 4500,
-    limites: '8 condominios · hasta 250 unidades',
-    para: 'Administrador profesional establecido',
-    features: [
-      'Todo lo del Starter',
-      'Hasta 8 condominios',
-      'Hasta 250 unidades totales',
-      'Reportes por condominio',
-      'Soporte prioritario',
-    ],
-    color: 'border-gray-200',
-    badge: null,
-  },
-  {
-    id: 'business',
-    nombre: 'Business',
-    precio: 7500,
-    limites: '20 condominios · hasta 600 unidades',
-    para: 'Empresa de administración',
-    features: [
-      'Todo lo del Pro',
-      'Hasta 20 condominios',
-      'Hasta 600 unidades totales',
-      'Soporte dedicado',
-      'Onboarding personalizado',
-    ],
-    color: 'border-gray-200',
-    badge: null,
   },
 ]
 
@@ -144,7 +96,7 @@ export default function PreciosPage() {
 
       {/* Grid de planes de pago */}
       <p className="text-xs text-gray-400 text-center mb-4 uppercase tracking-wide font-medium">Planes de pago — 14 días de prueba gratis</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-16">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-16">
         {PLANES.map(plan => (
           <div
             key={plan.id}
@@ -197,8 +149,8 @@ export default function PreciosPage() {
       <div className="bg-gray-50 rounded-2xl p-6 mb-12 max-w-lg mx-auto">
         <p className="text-sm font-semibold text-gray-700 mb-3">Punto de equilibrio</p>
         <div className="space-y-1 text-sm text-gray-600">
-          <p>Con <strong>3 clientes Mini</strong> cubres toda la infraestructura</p>
-          <p>Con <strong>2 clientes Básico</strong> cubres toda la infraestructura</p>
+          <p>Con <strong>3 clientes Básico</strong> cubres toda la infraestructura</p>
+          <p>Con <strong>2 clientes Básico+</strong> cubres toda la infraestructura</p>
         </div>
         <p className="text-xs text-gray-400 mt-3">Margen bruto: 84–92% según el plan</p>
       </div>

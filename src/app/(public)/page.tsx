@@ -236,7 +236,7 @@ export default function LandingPage() {
               ))}
             </ul>
             <div className="mt-5 pt-4 border-t border-gray-50">
-              <p className="text-xs text-gray-400">Plan Starter desde <strong className="text-gray-700">RD$2,500/mes</strong></p>
+              <p className="text-xs text-gray-400">Plan Básico desde <strong className="text-gray-700">RD$990/mes</strong></p>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-export type Plan = 'gratis' | 'mini' | 'basico' | 'starter' | 'pro' | 'business'
+export type Plan = 'gratis' | 'basico' | 'plus'
 export type PlanStatus = 'trial' | 'active' | 'suspended' | 'cancelled'
 export type CondominioTipo = 'residencial_multi' | 'edificio_solo' | 'casas'
 export type UnidadTipo = 'apartamento' | 'casa' | 'sotano'
@@ -180,21 +180,21 @@ export interface WhatsappPlantilla {
   aprobada_meta: boolean
 }
 
+export const PLAN_NOMBRES: Record<Plan, string> = {
+  gratis: 'Gratis',
+  basico: 'Básico',
+  plus:   'Básico+',
+}
+
 // Precios en USD para cobro por PayPal (aprox. RD$/58)
 export const PLAN_PRECIOS_USD: Record<Plan, string> = {
-  gratis:   '0.00',
-  mini:     '17.00',
-  basico:   '25.00',
-  starter:  '43.00',
-  pro:      '77.00',
-  business: '129.00',
+  gratis: '0.00',
+  basico: '17.00',
+  plus:   '25.00',
 }
 
 export const PLAN_LIMITES: Record<Plan, { condominios: number; unidades: number; precio: number }> = {
-  gratis:   { condominios: 1,  unidades: 10,  precio: 0 },
-  mini:     { condominios: 1,  unidades: 10,  precio: 990 },
-  basico:   { condominios: 1,  unidades: 30,  precio: 1490 },
-  starter:  { condominios: 3,  unidades: 80,  precio: 2500 },
-  pro:      { condominios: 8,  unidades: 250, precio: 4500 },
-  business: { condominios: 20, unidades: 600, precio: 7500 },
+  gratis: { condominios: 1, unidades: 10,  precio: 0 },
+  basico: { condominios: 1, unidades: 40,  precio: 990 },
+  plus:   { condominios: 1, unidades: 100, precio: 1490 },
 }

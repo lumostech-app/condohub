@@ -154,8 +154,8 @@ export default function ConfiguracionPage() {
       <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-gray-400 uppercase font-semibold">Plan actual</p>
-          <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full capitalize">
-            {admin.plan}
+          <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+            {admin.plan === 'plus' ? 'Básico+' : admin.plan === 'basico' ? 'Básico' : 'Gratis'}
           </span>
         </div>
         {limites && (

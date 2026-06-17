@@ -127,20 +127,14 @@ function NavLink({ href, icon, label, onClick }: NavItem & { onClick?: () => voi
 
 const PLAN_LABELS: Record<string, string> = {
   gratis: 'Gratis',
-  mini: 'Mini',
   basico: 'Básico',
-  starter: 'Starter',
-  pro: 'Pro',
-  business: 'Business',
+  plus:   'Básico+',
 }
 
 const PLAN_COLORS: Record<string, string> = {
   gratis: 'bg-gray-100 text-gray-600',
-  mini: 'bg-blue-100 text-blue-700',
   basico: 'bg-blue-100 text-blue-700',
-  starter: 'bg-purple-100 text-purple-700',
-  pro: 'bg-amber-100 text-amber-700',
-  business: 'bg-green-100 text-green-700',
+  plus:   'bg-indigo-100 text-indigo-700',
 }
 
 export function SidebarContent({ adminNombre, plan, condoId, condoNombre, onNav }: {

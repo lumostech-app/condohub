@@ -63,12 +63,9 @@ export default function RegistroPage() {
   }
 
   const PLANES = [
-    { id: 'gratis',   label: 'Gratis',   desc: '1 condo / 10 unidades',    precio: 'Gratis' },
-    { id: 'mini',     label: 'Mini',     desc: '1 condo / 10 unidades',    precio: 'RD$990/mes' },
-    { id: 'basico',   label: 'Básico',   desc: '1 condo / 30 unidades',    precio: 'RD$1,490/mes' },
-    { id: 'starter',  label: 'Starter',  desc: '3 condos / 80 unidades',   precio: 'RD$2,500/mes' },
-    { id: 'pro',      label: 'Pro',      desc: '8 condos / 250 unidades',  precio: 'RD$4,500/mes' },
-    { id: 'business', label: 'Business', desc: '20 condos / 600 unidades', precio: 'RD$7,500/mes' },
+    { id: 'gratis', label: 'Gratis',  desc: '1 condo · hasta 10 unidades',  precio: 'Gratis' },
+    { id: 'basico', label: 'Básico',  desc: '1 condo · hasta 40 unidades',  precio: 'RD$990/mes' },
+    { id: 'plus',   label: 'Básico+', desc: '1 condo · hasta 100 unidades', precio: 'RD$1,490/mes' },
   ]
 
   const esGratis = form.plan === 'gratis'

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js'
-import { PLAN_LIMITES, PLAN_PRECIOS_USD } from '@/types'
+import { PLAN_LIMITES, PLAN_PRECIOS_USD, PLAN_NOMBRES } from '@/types'
 import type { Plan } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 
@@ -15,7 +15,7 @@ interface Admin {
   trial_ends_at: string | null
 }
 
-const PLANES_ORDEN: Plan[] = ['gratis', 'mini', 'basico', 'starter', 'pro', 'business']
+const PLANES_ORDEN: Plan[] = ['gratis', 'basico', 'plus']
 
 export default function SuscripcionPage() {
   const [admin, setAdmin] = useState<Admin | null>(null)
@@ -54,7 +54,7 @@ export default function SuscripcionPage() {
         <div className="text-6xl mb-4">✅</div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">¡Pago exitoso!</h1>
         <p className="text-gray-500 text-sm mb-2">
-          Tu suscripción Plan <span className="font-semibold capitalize">{planSeleccionado}</span> está activa por 30 días.
+          Tu suscripción Plan <span className="font-semibold">{PLAN_NOMBRES[planSeleccionado]}</span> está activa por 30 días.
         </p>
         <p className="text-xs text-gray-400 mb-8">Gracias por confiar en CondoHub</p>
         <Link
@@ -81,8 +81,8 @@ export default function SuscripcionPage() {
       {/* Estado actual */}
       <div className={`rounded-2xl p-4 mb-6 ${admin.plan === 'gratis' ? 'bg-green-50' : 'bg-blue-50'}`}>
         <p className={`text-xs font-semibold uppercase mb-1 ${admin.plan === 'gratis' ? 'text-green-500' : 'text-blue-500'}`}>Estado actual</p>
-        <p className={`text-sm font-medium capitalize ${admin.plan === 'gratis' ? 'text-green-900' : 'text-blue-900'}`}>
-          Plan {admin.plan} · <span className="capitalize">{admin.plan_status}</span>
+        <p className={`text-sm font-medium ${admin.plan === 'gratis' ? 'text-green-900' : 'text-blue-900'}`}>
+          Plan {PLAN_NOMBRES[admin.plan as Plan] ?? admin.plan} · <span className="capitalize">{admin.plan_status}</span>
         </p>
         {admin.plan === 'gratis' && (
           <p className="text-xs text-green-600 mt-1">Plan gratuito permanente · Sin fecha de vencimiento</p>
@@ -127,7 +127,7 @@ export default function SuscripcionPage() {
                     className="text-blue-600"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900 capitalize">{plan}</p>
+                    <p className="text-sm font-medium text-gray-900">{PLAN_NOMBRES[plan]}</p>
                     <p className="text-xs text-gray-400">{l.condominios} condo(s) · {l.unidades} unidades</p>
                   </div>
                 </div>

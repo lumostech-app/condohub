@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   // Si no existe el record (trigger falló), crearlo ahora
   if (!admin) {
     const plan = user.user_metadata?.plan_intend ?? user.user_metadata?.plan ?? 'gratis'
-    const planValido = ['gratis','mini','basico','starter','pro','business'].includes(plan) ? plan : 'gratis'
+    const planValido = ['gratis','basico','plus'].includes(plan) ? plan : 'gratis'
     await db.from('admins').insert({
       id: user.id,
       nombre: user.user_metadata?.nombre ?? 'Administrador',

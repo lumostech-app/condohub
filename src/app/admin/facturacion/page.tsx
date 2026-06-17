@@ -12,7 +12,7 @@ interface Admin {
   created_at: string
 }
 
-const PLAN_ORDER = ['mini', 'basico', 'starter', 'pro', 'business'] as const
+const PLAN_ORDER = ['basico', 'plus'] as const
 
 export default async function FacturacionPage() {
   const supabase = createAdminClient()
