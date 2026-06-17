@@ -3,11 +3,17 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PLAN_LIMITES } from '@/types'
 
+interface UnidadInput {
+  codigo: string
+  piso: number | null
+  tipo: 'apartamento' | 'sotano' | 'casa'
+}
+
 interface EdificioInput {
   nombre: string
   niveles: number
   tiene_sotano: boolean
-  unidades: string[]
+  unidades: (string | UnidadInput)[]
 }
 
 interface EstructuraInput {
@@ -75,7 +81,7 @@ export async function POST(request: NextRequest) {
     .select('*', { count: 'exact', head: true })
     .eq('admin_id', user.id)
 
-  const nuevasUnidades = estructura.total_unidades
+  const nuevasUnidades = estructura.edificios.reduce((s, e) => s + e.unidades.length, 0)
   if ((unidadesActuales ?? 0) + nuevasUnidades > limites.unidades) {
     return NextResponse.json(
       { error: `Tu plan ${admin.plan} permite máximo ${limites.unidades} unidades en total. Tienes ${unidadesActuales} y quieres agregar ${nuevasUnidades}.` },
@@ -124,15 +130,23 @@ export async function POST(request: NextRequest) {
       edificioId = edificio.id
     }
 
-    // Insertar unidades en bulk
-    const unidadesInsert = ed.unidades.map(codigo => ({
-      condominio_id: condominioId,
-      edificio_id: edificioId,
-      admin_id: user.id,
-      codigo,
-      tipo: codigo.endsWith('S') ? 'sotano' as const : estructura.tipo === 'casas' ? 'casa' as const : 'apartamento' as const,
-      piso: extraerPiso(codigo),
-    }))
+    // Normalizar unidades al formato objeto (acepta string[] por retrocompat)
+    const unidadesInsert = ed.unidades.map(u => {
+      const isObj = typeof u === 'object'
+      const codigo = (isObj ? u.codigo : u).trim().toUpperCase()
+      const tipo = isObj
+        ? u.tipo
+        : codigo.endsWith('S') ? 'sotano' : estructura.tipo === 'casas' ? 'casa' : 'apartamento'
+      const piso = isObj ? u.piso : extraerPiso(codigo)
+      return {
+        condominio_id: condominioId,
+        edificio_id: edificioId,
+        admin_id: user.id,
+        codigo,
+        tipo: tipo as 'apartamento' | 'sotano' | 'casa',
+        piso,
+      }
+    })
 
     const { error: errorUnidades } = await supabase
       .from('unidades')

@@ -1,14 +1,29 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  generarUnidades,
+  PRESETS,
+  FormatoUnidad,
+  EdificioConfig,
+  letraEdificio,
+} from '@/lib/unidades'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-interface EdificioConfig {
-  letra: string
-  unidades: number
-  sotano: boolean
+type TipoCondominio = 'residencial_multi' | 'edificio_solo' | 'casas'
+
+interface UnidadPreview {
+  id: string
+  codigo: string
+  piso: number | null
+  tipo: 'apartamento' | 'sotano'
+}
+
+interface GrupoPreview {
+  label: string
+  unidades: UnidadPreview[]
 }
 
 interface ResidenteImportado {
@@ -17,6 +32,21 @@ interface ResidenteImportado {
   cedula: string
   telefono: string
   email: string
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function mkId(): string {
+  return Math.random().toString(36).slice(2, 10)
+}
+
+function mkEdificios(count: number, udsTotal: number, pisos: number, udsPiso: number): EdificioConfig[] {
+  return Array.from({ length: count }, (_, i) => ({
+    label: letraEdificio(i + 1),
+    pisos,
+    unidadesPorPiso: udsPiso,
+    unidadesTotal: udsTotal,
+  }))
 }
 
 // ─── Barra de progreso ────────────────────────────────────────────────────────
@@ -51,62 +81,73 @@ function ProgressBar({ step }: { step: 1 | 2 | 3 }) {
   )
 }
 
-// ─── Generador de letras ──────────────────────────────────────────────────────
-
-function letraDesde(n: number): string {
-  return String.fromCharCode(64 + n) // 1→A, 2→B...
-}
-
-function generarEdificios(count: number, unidadesBase: number): EdificioConfig[] {
-  return Array.from({ length: count }, (_, i) => ({
-    letra: letraDesde(i + 1),
-    unidades: unidadesBase,
-    sotano: false,
-  }))
-}
-
-// ─── Paso 1: Formulario ───────────────────────────────────────────────────────
-
-const TIPOS = [
-  { value: 'residencial_multi', label: 'Residencial (varios edificios)' },
-  { value: 'edificio_solo',     label: 'Edificio único' },
-  { value: 'casas',             label: 'Urbanización / casas' },
-]
+// ─── Paso 1: Información ──────────────────────────────────────────────────────
 
 function PasoInfo({ onNext }: { onNext: (id: string) => void }) {
-  const [form, setForm] = useState({
-    nombre: '',
-    direccion: '',
-    tipo: 'residencial_multi' as 'residencial_multi' | 'edificio_solo' | 'casas',
-    // edificio_solo / casas
-    totalUnidades: '',
-    prefijo: '',
-    // residencial_multi
-    numEdificios: 2,
-    unidadesPorEdificio: 4,
-  })
-  const [edificios, setEdificios] = useState<EdificioConfig[]>(generarEdificios(2, 4))
+  // Basic info
+  const [nombre, setNombre] = useState('')
+  const [direccion, setDireccion] = useState('')
+  const [tipo, setTipo] = useState<TipoCondominio>('residencial_multi')
+
+  // Format
+  const [presetKey, setPresetKey] = useState('letraNumero')
+  const [formato, setFormato] = useState<FormatoUnidad>(PRESETS.letraNumero.formato)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+
+  // Building structure
+  const [numEdificios, setNumEdificios] = useState(2)
+  const [gTotal, setGTotal] = useState(4)
+  const [gPisos, setGPisos] = useState(2)
+  const [gUdsPiso, setGUdsPiso] = useState(2)
+  const [edificios, setEdificios] = useState<EdificioConfig[]>(mkEdificios(2, 4, 2, 2))
+
+  // Preview editable
+  const [grupos, setGrupos] = useState<GrupoPreview[]>([])
+  const [editada, setEditada] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingValue, setEditingValue] = useState('')
+
+  // Save state
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function handleField(name: string, value: string | number) {
-    setForm(prev => ({ ...prev, [name]: value }))
+  const esMulti = tipo === 'residencial_multi'
+  const esPorPiso = formato.familia === 'porPiso'
+
+  // Auto-regenerate when structure/format changes (unless manually edited)
+  useEffect(() => {
+    if (editada) return
+    const raw = generarUnidades(edificios, formato)
+    setGrupos(raw.map(g => ({
+      label: g.label,
+      unidades: g.unidades.map(u => ({ ...u, id: mkId() })),
+    })))
+  }, [edificios, formato, editada])
+
+  // ── Tipo change ──
+
+  function handleTipo(t: TipoCondominio) {
+    setTipo(t)
+    setEditada(false)
+    if (t === 'residencial_multi') {
+      setEdificios(mkEdificios(numEdificios, gTotal, gPisos, gUdsPiso))
+    } else {
+      setEdificios([{ label: '', pisos: gPisos, unidadesPorPiso: gUdsPiso, unidadesTotal: gTotal }])
+    }
   }
 
-  function handleTipo(value: string) {
-    const t = value as typeof form.tipo
-    setForm(prev => ({ ...prev, tipo: t }))
-  }
+  // ── Building structure ──
 
   function handleNumEdificios(n: number) {
     const count = Math.max(1, Math.min(26, n))
-    setForm(prev => ({ ...prev, numEdificios: count }))
+    setNumEdificios(count)
     setEdificios(prev => {
       if (count > prev.length) {
         const extras = Array.from({ length: count - prev.length }, (_, i) => ({
-          letra: letraDesde(prev.length + i + 1),
-          unidades: form.unidadesPorEdificio,
-          sotano: false,
+          label: letraEdificio(prev.length + i + 1),
+          pisos: gPisos,
+          unidadesPorPiso: gUdsPiso,
+          unidadesTotal: gTotal,
         }))
         return [...prev, ...extras]
       }
@@ -114,69 +155,124 @@ function PasoInfo({ onNext }: { onNext: (id: string) => void }) {
     })
   }
 
-  function handleUnidadesPorEdificio(n: number) {
-    const u = Math.max(1, Math.min(200, n))
-    setForm(prev => ({ ...prev, unidadesPorEdificio: u }))
-    setEdificios(prev => prev.map(e => ({ ...e, unidades: u })))
+  function updateEdificio(i: number, patch: Partial<EdificioConfig>) {
+    setEdificios(prev => prev.map((e, idx) => idx === i ? { ...e, ...patch } : e))
   }
 
-  function toggleSotano(letra: string) {
-    setEdificios(prev => prev.map(e => e.letra === letra ? { ...e, sotano: !e.sotano } : e))
+  function applyGlobal(key: 'unidadesTotal' | 'pisos' | 'unidadesPorPiso', val: number) {
+    if (key === 'unidadesTotal') setGTotal(val)
+    if (key === 'pisos') setGPisos(val)
+    if (key === 'unidadesPorPiso') setGUdsPiso(val)
+    setEdificios(prev => prev.map(e => ({ ...e, [key]: val })))
   }
 
-  function setUnidadesEdificio(letra: string, n: number) {
-    setEdificios(prev => prev.map(e => e.letra === letra ? { ...e, unidades: Math.max(1, n) } : e))
+  // ── Format ──
+
+  function selectPreset(key: string) {
+    setPresetKey(key)
+    setFormato(PRESETS[key].formato)
   }
 
-  // Construir estructura para la API
-  function buildEstructura() {
-    if (form.tipo === 'casas' || form.tipo === 'edificio_solo') {
-      const total = parseInt(form.totalUnidades)
-      const prefix = form.prefijo.trim()
-      const unidades = Array.from({ length: total }, (_, i) => prefix ? `${prefix}${i + 1}` : String(i + 1))
-      return {
-        nombre: form.nombre.trim(),
-        direccion: form.direccion.trim(),
-        tipo: form.tipo,
-        edificios: [{ nombre: form.nombre.trim(), niveles: 1, tiene_sotano: false, unidades }],
-        total_unidades: total,
+  function updateFormato(patch: Partial<FormatoUnidad>) {
+    setFormato(prev => {
+      const next = { ...prev, ...patch }
+      if ('piso' in patch) {
+        next.familia = patch.piso === 'numero' ? 'porPiso' : 'porEdificio'
       }
-    }
-
-    // residencial_multi
-    const edsConUnidades = edificios.map(ed => {
-      const units: string[] = Array.from({ length: ed.unidades }, (_, i) => `${ed.letra}${i + 1}`)
-      if (ed.sotano) units.push(`${ed.letra}S`)
-      return {
-        nombre: `Edificio ${ed.letra}`,
-        niveles: 1,
-        tiene_sotano: ed.sotano,
-        unidades: units,
-      }
+      const found = Object.entries(PRESETS).find(([, p]) =>
+        JSON.stringify(p.formato) === JSON.stringify(next)
+      )
+      setPresetKey(found ? found[0] : 'custom')
+      return next
     })
-    const total = edsConUnidades.reduce((s, e) => s + e.unidades.length, 0)
-    return {
-      nombre: form.nombre.trim(),
-      direccion: form.direccion.trim(),
-      tipo: form.tipo,
-      edificios: edsConUnidades,
-      total_unidades: total,
-    }
   }
+
+  // ── Preview editing ──
+
+  function startEdit(id: string, codigo: string) {
+    setEditingId(id)
+    setEditingValue(codigo)
+  }
+
+  function saveEdit() {
+    if (!editingId) return
+    const val = editingValue.trim().toUpperCase()
+    if (val) {
+      setGrupos(prev => prev.map(g => ({
+        ...g,
+        unidades: g.unidades.map(u => u.id === editingId ? { ...u, codigo: val } : u),
+      })))
+      setEditada(true)
+    } else {
+      // empty → remove the unit
+      setGrupos(prev => prev.map(g => ({
+        ...g,
+        unidades: g.unidades.filter(u => u.id !== editingId),
+      })))
+      setEditada(true)
+    }
+    setEditingId(null)
+  }
+
+  function cancelEdit() {
+    // If the unit has no code (was just added), remove it
+    setGrupos(prev => prev.map(g => ({
+      ...g,
+      unidades: g.unidades.filter(u => !(u.id === editingId && !u.codigo)),
+    })))
+    setEditingId(null)
+  }
+
+  function removeUnidad(groupLabel: string, id: string) {
+    setGrupos(prev => prev.map(g =>
+      g.label === groupLabel
+        ? { ...g, unidades: g.unidades.filter(u => u.id !== id) }
+        : g
+    ))
+    setEditada(true)
+  }
+
+  function addUnidad(groupLabel: string) {
+    const newId = mkId()
+    setGrupos(prev => prev.map(g =>
+      g.label === groupLabel
+        ? { ...g, unidades: [...g.unidades, { id: newId, codigo: '', piso: null, tipo: 'apartamento' }] }
+        : g
+    ))
+    setEditada(true)
+    setEditingId(newId)
+    setEditingValue('')
+  }
+
+  // ── Submit ──
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.nombre.trim()) { setError('El nombre es requerido'); return }
+    if (!nombre.trim()) { setError('El nombre es requerido'); return }
 
-    if (form.tipo !== 'residencial_multi') {
-      const total = parseInt(form.totalUnidades)
-      if (!total || total < 1 || total > 999) { setError('Ingresa un número de unidades válido (1-999)'); return }
-    }
+    const totalValidas = grupos.reduce((s, g) => s + g.unidades.filter(u => u.codigo.trim()).length, 0)
+    if (totalValidas === 0) { setError('Agrega al menos una unidad'); return }
 
     setLoading(true)
     setError(null)
 
-    const estructura = buildEstructura()
+    const edificiosData = grupos.map((g, gi) => ({
+      nombre: esMulti ? `Edificio ${g.label}` : nombre.trim(),
+      niveles: esPorPiso ? (edificios[gi]?.pisos ?? 1) : 1,
+      tiene_sotano: g.unidades.some(u => u.tipo === 'sotano'),
+      unidades: g.unidades
+        .filter(u => u.codigo.trim())
+        .map(u => ({ codigo: u.codigo.trim().toUpperCase(), piso: u.piso, tipo: u.tipo })),
+    }))
+
+    const estructura = {
+      nombre: nombre.trim(),
+      direccion: direccion.trim(),
+      tipo,
+      edificios: edificiosData,
+      total_unidades: edificiosData.reduce((s, e) => s + e.unidades.length, 0),
+    }
+
     const res = await fetch('/api/onboarding/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -189,26 +285,10 @@ function PasoInfo({ onNext }: { onNext: (id: string) => void }) {
     onNext(data.condominioId)
   }
 
-  // Preview total
-  const totalPreview = form.tipo === 'residencial_multi'
-    ? edificios.reduce((s, e) => s + e.unidades + (e.sotano ? 1 : 0), 0)
-    : parseInt(form.totalUnidades) || 0
-
-  // Preview primeros códigos
-  const codigosPreview: string[] = form.tipo === 'residencial_multi'
-    ? edificios.slice(0, 3).flatMap(e => {
-        const arr = Array.from({ length: Math.min(e.unidades, 4) }, (_, i) => `${e.letra}${i + 1}`)
-        if (e.sotano) arr.push(`${e.letra}S`)
-        return arr
-      })
-    : (() => {
-        const total = parseInt(form.totalUnidades) || 0
-        const prefix = form.prefijo.trim()
-        return Array.from({ length: Math.min(total, 5) }, (_, i) => prefix ? `${prefix}${i + 1}` : String(i + 1))
-      })()
+  const totalUnidades = grupos.reduce((s, g) => s + g.unidades.filter(u => u.codigo.trim()).length, 0)
 
   return (
-    <form onSubmit={guardar} className="space-y-5">
+    <form onSubmit={guardar} className="space-y-7">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Nuevo condominio</h1>
         <p className="text-sm text-gray-500">Completa la información básica para empezar</p>
@@ -216,154 +296,359 @@ function PasoInfo({ onNext }: { onNext: (id: string) => void }) {
 
       {error && <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre del condominio</label>
-        <input
-          type="text" required value={form.nombre}
-          onChange={e => handleField('nombre', e.target.value)}
-          placeholder="Ej: Residencial Madrigal I"
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      {/* ── Información básica ── */}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre del condominio</label>
+          <input
+            type="text" required value={nombre} onChange={e => setNombre(e.target.value)}
+            placeholder="Ej: Residencial Madrigal I"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            Dirección <span className="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <input
+            type="text" value={direccion} onChange={e => setDireccion(e.target.value)}
+            placeholder="Ej: Av. Carlos Pérez Ricart, Santo Domingo"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipo de propiedad</label>
+          <select
+            value={tipo} onChange={e => handleTipo(e.target.value as TipoCondominio)}
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="residencial_multi">Residencial (varios edificios)</option>
+            <option value="edificio_solo">Edificio único</option>
+            <option value="casas">Urbanización / casas</option>
+          </select>
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Dirección <span className="text-gray-400 font-normal">(opcional)</span></label>
-        <input
-          type="text" value={form.direccion}
-          onChange={e => handleField('direccion', e.target.value)}
-          placeholder="Ej: Av. Carlos Pérez Ricart, Santo Domingo"
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
+      {/* ── Numeración (presets) ── */}
+      <div className="space-y-3">
+        <p className="text-sm font-semibold text-gray-700">¿Cómo se numeran las unidades?</p>
+        <div className="grid grid-cols-2 gap-2">
+          {Object.entries(PRESETS).map(([key, preset]) => {
+            const sample = generarUnidades(
+              [{ label: edificios[0]?.label || 'A', pisos: Math.min(edificios[0]?.pisos || 2, 2), unidadesPorPiso: Math.min(edificios[0]?.unidadesPorPiso || 2, 2), unidadesTotal: Math.min(edificios[0]?.unidadesTotal || 4, 3) }],
+              preset.formato,
+            ).flatMap(g => g.unidades.map(u => u.codigo)).slice(0, 4).join(', ')
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipo de propiedad</label>
-        <select
-          value={form.tipo} onChange={e => handleTipo(e.target.value)}
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            return (
+              <button
+                key={key} type="button"
+                onClick={() => selectPreset(key)}
+                className={`text-left p-3 rounded-xl border-2 transition-colors ${
+                  presetKey === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+              >
+                <p className="text-xs font-semibold text-gray-800 mb-0.5">{preset.label}</p>
+                <p className="text-xs text-gray-400 font-mono truncate">{sample || preset.ejemplo}</p>
+              </button>
+            )
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen(p => !p)}
+          className="text-xs text-gray-400 flex items-center gap-1 hover:text-gray-600 transition-colors"
         >
-          {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
+          <span>{advancedOpen ? '▾' : '▸'}</span> Formato avanzado
+        </button>
+
+        {advancedOpen && (
+          <div className="grid grid-cols-3 gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Edificio</label>
+              <select
+                value={formato.edificio}
+                onChange={e => updateFormato({ edificio: e.target.value as FormatoUnidad['edificio'] })}
+                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="ninguno">Ninguno</option>
+                <option value="letra">Letra</option>
+                <option value="numero">Número</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Piso</label>
+              <select
+                value={formato.piso}
+                onChange={e => updateFormato({ piso: e.target.value as FormatoUnidad['piso'] })}
+                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="ninguno">Ninguno</option>
+                <option value="numero">Número</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Unidad</label>
+              <select
+                value={formato.unidad}
+                onChange={e => updateFormato({ unidad: e.target.value as FormatoUnidad['unidad'] })}
+                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="numero">Número (1, 2…)</option>
+                <option value="numeroCero">Núm. con cero (01, 02…)</option>
+                <option value="letra">Letra (A, B…)</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ── RESIDENCIAL MULTI ── */}
-      {form.tipo === 'residencial_multi' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+      {/* ── Estructura ── */}
+      <div className="space-y-3">
+        <p className="text-sm font-semibold text-gray-700">Estructura</p>
+
+        {/* Multi: global controls */}
+        {esMulti && (
+          <div className={`grid gap-3 ${esPorPiso ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Número de edificios</label>
+              <label className="block text-xs text-gray-500 mb-1">Edificios</label>
               <input
-                type="number" min="1" max="26"
-                value={form.numEdificios}
+                type="number" min="1" max="26" value={numEdificios}
                 onChange={e => handleNumEdificios(parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+            {!esPorPiso ? (
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Aptos por edificio</label>
+                <input
+                  type="number" min="1" max="200" value={gTotal}
+                  onChange={e => applyGlobal('unidadesTotal', parseInt(e.target.value) || 1)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Pisos</label>
+                  <input
+                    type="number" min="1" max="99" value={gPisos}
+                    onChange={e => applyGlobal('pisos', parseInt(e.target.value) || 1)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Uds/piso</label>
+                  <input
+                    type="number" min="1" max="50" value={gUdsPiso}
+                    onChange={e => applyGlobal('unidadesPorPiso', parseInt(e.target.value) || 1)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Solo/Casas: inline controls */}
+        {!esMulti && (
+          <div className={`grid gap-3 ${esPorPiso ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Aptos por edificio</label>
+              <label className="block text-xs text-gray-500 mb-1">
+                Prefijo <span className="text-gray-300">(opcional)</span>
+              </label>
               <input
-                type="number" min="1" max="200"
-                value={form.unidadesPorEdificio}
-                onChange={e => handleUnidadesPorEdificio(parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                type="text" maxLength={6} value={edificios[0]?.label ?? ''}
+                onChange={e => updateEdificio(0, { label: e.target.value.toUpperCase() })}
+                placeholder={tipo === 'casas' ? 'Casa' : 'Apto'}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+            {!esPorPiso ? (
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  {tipo === 'casas' ? 'Número de casas' : 'Número de unidades'}
+                </label>
+                <input
+                  type="number" min="1" max="999" value={edificios[0]?.unidadesTotal ?? 4}
+                  onChange={e => updateEdificio(0, { unidadesTotal: parseInt(e.target.value) || 1 })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Pisos</label>
+                  <input
+                    type="number" min="1" max="99" value={edificios[0]?.pisos ?? 2}
+                    onChange={e => updateEdificio(0, { pisos: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Uds/piso</label>
+                  <input
+                    type="number" min="1" max="50" value={edificios[0]?.unidadesPorPiso ?? 2}
+                    onChange={e => updateEdificio(0, { unidadesPorPiso: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </>
+            )}
           </div>
+        )}
 
-          {/* Tabla de edificios */}
-          <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Configuración por edificio</p>
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">Edificio</th>
+        {/* Multi: per-edificio table */}
+        {esMulti && (
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="px-3 py-2 text-xs font-semibold text-gray-500">Edificio</th>
+                  {!esPorPiso ? (
                     <th className="px-3 py-2 text-xs font-semibold text-gray-500">Aptos</th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500 text-center">Sótano</th>
-                    <th className="px-3 py-2 text-xs font-semibold text-gray-500">Códigos</th>
+                  ) : (
+                    <>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">Pisos</th>
+                      <th className="px-3 py-2 text-xs font-semibold text-gray-500">Uds/piso</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {edificios.map((ed, i) => (
+                  <tr key={i}>
+                    <td className="px-3 py-1.5">
+                      <input
+                        type="text" maxLength={4} value={ed.label}
+                        onChange={e => updateEdificio(i, { label: e.target.value.toUpperCase() })}
+                        className="w-12 px-2 py-1 border border-gray-200 rounded-lg text-sm font-mono font-bold text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    {!esPorPiso ? (
+                      <td className="px-3 py-1.5">
+                        <input
+                          type="number" min="1" max="200" value={ed.unidadesTotal}
+                          onChange={e => updateEdificio(i, { unidadesTotal: parseInt(e.target.value) || 1 })}
+                          className="w-16 px-2 py-1 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </td>
+                    ) : (
+                      <>
+                        <td className="px-3 py-1.5">
+                          <input
+                            type="number" min="1" max="99" value={ed.pisos}
+                            onChange={e => updateEdificio(i, { pisos: parseInt(e.target.value) || 1 })}
+                            className="w-16 px-2 py-1 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <input
+                            type="number" min="1" max="50" value={ed.unidadesPorPiso}
+                            onChange={e => updateEdificio(i, { unidadesPorPiso: parseInt(e.target.value) || 1 })}
+                            className="w-16 px-2 py-1 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                      </>
+                    )}
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {edificios.map(ed => (
-                    <tr key={ed.letra}>
-                      <td className="px-3 py-2 font-mono font-bold text-gray-700">{ed.letra}</td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number" min="1" max="200"
-                          value={ed.unidades}
-                          onChange={e => setUnidadesEdificio(ed.letra, parseInt(e.target.value) || 1)}
-                          className="w-14 px-2 py-1 border border-gray-200 rounded-lg text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <input
-                          type="checkbox"
-                          checked={ed.sotano}
-                          onChange={() => toggleSotano(ed.letra)}
-                          className="w-4 h-4 accent-blue-600 cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-xs text-gray-400 font-mono">
-                        {ed.letra}1–{ed.letra}{ed.unidades}{ed.sotano ? `, ${ed.letra}S` : ''}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                ))}
+              </tbody>
+            </table>
+            <div className="px-3 py-2 bg-gray-50 border-t border-gray-200 flex gap-3">
+              <button
+                type="button"
+                onClick={() => handleNumEdificios(numEdificios + 1)}
+                className="text-xs text-blue-600 font-medium hover:text-blue-700"
+              >
+                + Edificio
+              </button>
+              {numEdificios > 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleNumEdificios(numEdificios - 1)}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  − Quitar último
+                </button>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* ── EDIFICIO SOLO / CASAS ── */}
-      {form.tipo !== 'residencial_multi' && (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              {form.tipo === 'casas' ? 'Número de casas' : 'Número de unidades'}
-            </label>
-            <input
-              type="number" required min="1" max="999"
-              value={form.totalUnidades}
-              onChange={e => handleField('totalUnidades', e.target.value)}
-              placeholder="Ej: 20"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Prefijo <span className="text-gray-400 font-normal">(opcional)</span>
-            </label>
-            <input
-              type="text" maxLength={4}
-              value={form.prefijo}
-              onChange={e => handleField('prefijo', e.target.value)}
-              placeholder="Ej: Apto, Casa"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+      {/* ── Vista previa editable ── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-gray-700">
+            Vista previa ·{' '}
+            <span className="text-blue-600 font-normal">{totalUnidades} unidades</span>
+          </p>
+          {editada && (
+            <button
+              type="button"
+              onClick={() => setEditada(false)}
+              className="text-xs text-orange-500 hover:text-orange-700 font-medium"
+            >
+              Regenerar (borrará ediciones)
+            </button>
+          )}
         </div>
-      )}
 
-      {/* Preview */}
-      {totalPreview > 0 && (
-        <div className="bg-blue-50 rounded-xl px-4 py-3">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-blue-700">Vista previa · {totalPreview} unidades</p>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {codigosPreview.map(u => (
-              <span key={u} className="text-xs font-mono bg-white border border-blue-100 rounded px-2 py-0.5 text-gray-700">{u}</span>
-            ))}
-            {form.tipo === 'residencial_multi' && edificios.length > 3 && (
-              <span className="text-xs text-blue-400 py-0.5">... y más edificios</span>
+        {grupos.map(grupo => (
+          <div key={grupo.label} className="border border-gray-200 rounded-xl p-3 space-y-2">
+            {esMulti && grupo.label && (
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                Edificio {grupo.label}
+              </p>
             )}
-            {form.tipo !== 'residencial_multi' && totalPreview > 5 && (
-              <span className="text-xs text-blue-400 py-0.5">... hasta {form.prefijo}{totalPreview}</span>
-            )}
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {grupo.unidades.map(u => (
+                <div key={u.id} className="flex items-center gap-0 relative">
+                  {editingId === u.id ? (
+                    <input
+                      autoFocus
+                      value={editingValue}
+                      onChange={e => setEditingValue(e.target.value.toUpperCase())}
+                      onBlur={saveEdit}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { e.preventDefault(); saveEdit() }
+                        if (e.key === 'Escape') cancelEdit()
+                      }}
+                      className="w-16 px-2 py-0.5 border-2 border-blue-400 rounded text-xs font-mono text-center focus:outline-none bg-blue-50"
+                    />
+                  ) : (
+                    <span className="flex items-center gap-0.5 text-xs font-mono bg-white border border-gray-200 rounded px-2 py-0.5 text-gray-700 hover:border-blue-300 transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(u.id, u.codigo)}
+                        className="hover:text-blue-600"
+                      >
+                        {u.codigo || '?'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeUnidad(grupo.label, u.id)}
+                        className="text-gray-300 hover:text-red-400 ml-1 text-sm leading-none"
+                        title="Eliminar"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addUnidad(grupo.label)}
+                className="text-xs text-blue-400 border border-dashed border-blue-200 rounded px-2 py-0.5 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors font-mono"
+              >
+                + Agregar
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
       <button
         type="submit" disabled={loading}
@@ -444,7 +729,7 @@ function PasoPropietarios({ condominioId, onNext }: { condominioId: string; onNe
         {resultado.errores.length > 0 && (
           <div className="mt-3">
             <p className="text-xs font-semibold text-orange-600 mb-1">⚠️ Con problemas:</p>
-            {resultado.errores.map((e, i) => <p key={i} className="text-xs text-gray-600">• {e}</p>)}
+            {resultado.errores.map((err, i) => <p key={i} className="text-xs text-gray-600">• {err}</p>)}
           </div>
         )}
       </div>
