@@ -1,27 +1,27 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import Sidebar from './Sidebar'
+import MobileHeader from './MobileHeader'
 
 interface Condominio {
   id: string
   nombre: string
 }
 
-interface ShellWrapperProps {
+interface MobileNavWrapperProps {
   adminNombre: string
   plan: string
   condominios: Condominio[]
 }
 
-export default function ShellWrapper({ adminNombre, plan, condominios }: ShellWrapperProps) {
+export default function MobileNavWrapper({ adminNombre, plan, condominios }: MobileNavWrapperProps) {
   const pathname = usePathname()
   const match = pathname.match(/^\/condominios\/([^/]+)/)
   const condoId = match?.[1]
   const condo = condoId ? condominios.find(c => c.id === condoId) : undefined
 
   return (
-    <Sidebar
+    <MobileHeader
       adminNombre={adminNombre}
       plan={plan}
       condoId={condoId}
